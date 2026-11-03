@@ -1,13 +1,17 @@
 {
   "dependencies": {
     "jszip": "^3.10.1",
-    "lamejs": "^1.2.1"
+    "lamejs": "^1.2.1",
+    "three": "^0.187.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "playwright": "^1.64.1"
   },
   "scripts": {
     "test:studio": "node tests/studio.js",
-    "start": "python3 -m http.server 4173 --bind 127.0.0.1"
+    "start": "python3 -m http.server 4173 --bind 127.0.0.1",
+    "build:art": "esbuild app/src/art-pbr.js --bundle --minify --format=iife --outfile=app/art-pbr.bundle.js",
+    "test:art": "node tests/art.js"
   }
 }

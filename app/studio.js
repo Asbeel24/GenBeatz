@@ -2,6 +2,8 @@
 (() => {
   const byId = id => document.getElementById(id);
   const stage = byId('artStage'), canvas = byId('particles'), ctx = canvas.getContext('2d');
+  const sculpture = window.createBeatSculpture?.(stage);
+  let slowFrames = 0, frameInterval = 32;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   let motion = !reduce.matches, visible = true, raf = 0, last = 0, phase = 0, burst = 0;
   let width = 0, height = 0, pointer = { x: 0, y: 0 }, drift = { x: 0, y: 0 };
@@ -17,6 +19,7 @@
     ctx.clearRect(0, 0, width, height);
     const running = !!playing;
     const beat = running ? Math.pow((1 + Math.cos((playing.ctx.currentTime - playing.t0) * current().bpm / 60 * Math.PI * 2)) / 2, 6) : 0;
+    if (sculpture?.render(time, beat, drift, burst)) return;
     const cx = width * (width < 760 ? .83 : .68) + drift.x * 16, cy = height * .51 + drift.y * 10;
     const radius = Math.min(height * .7, width * .26);
     // Perspective-projected toroidal mesh. Colour lives on the object, not a backlight.
@@ -74,11 +77,14 @@
   function tick(now) {
     raf = 0;
     if (!motion || stage.hidden || !visible || document.hidden) return;
-    if (now - last >= 32) { phase += Math.min((now - last) / 1000, .05); last = now; burst *= .93; drift.x += (pointer.x - drift.x) * .055; drift.y += (pointer.y - drift.y) * .055; draw(phase); }
+    if (now - last >= frameInterval) { phase += Math.min((now - last) / 1000, .05); last = now; burst *= .93; drift.x += (pointer.x - drift.x) * .055; drift.y += (pointer.y - drift.y) * .055; const start = performance.now(); draw(phase);
+      slowFrames = performance.now() - start > 24 ? slowFrames + 1 : 0;
+      if (slowFrames >= 20) { sculpture?.lowerQuality(); frameInterval = 50; }
+    }
     raf = requestAnimationFrame(tick);
   }
   function sync() { cancelAnimationFrame(raf); raf = 0; last = performance.now(); draw(phase); if (motion && visible && !stage.hidden && !document.hidden) raf = requestAnimationFrame(tick); }
-  function resize() { const box = stage.getBoundingClientRect(); if (!box.width || !box.height) return; width = box.width; height = box.height; const dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr); ctx?.setTransform(dpr, 0, 0, dpr, 0, 0); draw(phase); }
+  function resize() { const box = stage.getBoundingClientRect(); if (!box.width || !box.height) return; width = box.width; height = box.height; const dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr); ctx?.setTransform(dpr, 0, 0, dpr, 0, 0); sculpture?.resize(width, height); draw(phase); }
   new ResizeObserver(resize).observe(stage);
   new IntersectionObserver(entries => { visible = entries[0].isIntersecting; sync(); }).observe(stage);
   stage.addEventListener('pointermove', e => { const b = stage.getBoundingClientRect(); pointer = { x: (e.clientX - b.left) / b.width - .5, y: (e.clientY - b.top) / b.height - .5 }; });
@@ -92,6 +98,7 @@
   byId('mixToggle').addEventListener('click', () => setMixer(byId('mixerPanel').hidden));
   byId('mixClose').addEventListener('click', () => setMixer(false));
   byId('genBtn').addEventListener('click', () => { burst = 1; phase += .4; draw(phase); });
+  stage.addEventListener('art-renderer-lost', sync);
   document.addEventListener('visibilitychange', sync);
   motionUI();
 })();

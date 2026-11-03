@@ -30,7 +30,7 @@ Batch beat-demo generator that works from your own sample library. Browser-based
 
 参考 Portal 的粒子空间感、SoniX 的音乐制作品牌气质，重新组织为采样库和主工作台。右上角可收起视觉区或采样库；混音台按需展开。Pattern / Arrange 继续共享同一条 demo。
 
-粒子视觉随播放节拍脉动，指针可轻微扰动。视觉面板单独压暗背景与文案，保持动效亮度。三维坐标投影的环形点阵用相邻细线连接，呈现青绿到淡紫的流动网格、局部高光和前后层次；没有大面积背光或樱花层。使用 Canvas 2D 投影绘制，未引入 PBR / WebGL 依赖。动效可暂停，默认尊重系统减少动态效果设置，离屏或切到后台暂停动画。视觉交互不会改变音频。
+粒子视觉随播放节拍脉动，指针可轻微扰动。背板和文字保留正常亮度。Three.js / WebGL2 的 PBR 金属带具有三次半扭转、时变曲率和折面高光，以官网的细线、低亮背景与集中高光为视觉参考。无樱花、大面积背光、实时阴影或后期泛光。渲染分辨率上限为 1.5 倍，约 30 帧/秒；连续慢帧会降低分辨率并降至 20 帧/秒。WebGL 不可用或上下文丢失时回退到 Canvas 线网。动效可暂停，默认尊重系统减少动态效果设置，离屏或切到后台暂停动画。视觉交互不会改变音频。
 
 直接打开 `app/index.html`（保留同目录 CSS / JS 文件），或运行 `npm start` 后访问 `http://127.0.0.1:4173/app/`。
 
@@ -40,8 +40,13 @@ Batch beat-demo generator that works from your own sample library. Browser-based
 npm ci
 npx playwright install chromium
 npm run test:studio
+npm run test:art
 ```
 
 覆盖内置包生成、播放、编排、步进编辑和撤销、面板切换、动效开关、减少动态效果、三个屏幕宽度，以及实际 WAV / MP3 / 分轨 ZIP 下载。测试将 CDN 音频导出依赖映射到本地安装包。
 
 当前仍是浏览器应用，未制作桌面安装包。字体和导出依赖仍从外部服务加载；正式离线桌面发行前需将依赖本地化，并完成文件访问、安装打包与目标系统兼容验证。
+
+### 动态视觉构建
+
+`app/src/art-pbr.js` 是 PBR 源码，`app/art-pbr.bundle.js` 是随仓库提交的本地构建产物，包含 Three.js 许可证说明。修改后运行 `npm run build:art`。视觉运行无需 CDN、HDR 图片或在线纹理。首次初始化会生成一张小型环境反射贴图；尚未在所有低端设备上实测性能。
