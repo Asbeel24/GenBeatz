@@ -49,7 +49,7 @@ window.createBeatSculpture = host => {
     const edges = new THREE.BufferGeometry(); edges.setAttribute('position', geometry.attributes.position); edges.setIndex(edgeIndices);
     const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0xd2eee0, transparent:true, opacity:.25}));
     lines.frustumCulled = false; group.add(lines);
-    let lost = false, ratio = 1, lowQuality = false;
+    let lost = false, ratio = 1, lowQuality = false, hover = 0;
     canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; canvas.hidden = true; host.dataset.renderer = 'fallback'; host.dispatchEvent(new Event('art-renderer-lost')); });
     // After context restoration use the lightweight fallback for the remainder of the session.
     host.prepend(canvas);
@@ -61,27 +61,35 @@ window.createBeatSculpture = host => {
         renderer.setSize(w, h, false);
       },
       lowerQuality() { if (!lowQuality) { lowQuality = true; renderer.setPixelRatio(1); } },
-      render(time, beat, drift, burst) {
+      render(time, beat, drift, burst, pointer) {
         if (lost) { host.dataset.renderer = 'fallback'; return false; }
+        hover += ((pointer?.active ? 1 : 0) - hover) * .075;
+        const cursorU = ((pointer?.x || 0) + .5) * Math.PI * 2;
         for (let i = 0; i <= cols; i++) {
           const u = i / cols * Math.PI * 2;
-          const twist = u * 1.5 + .65 * Math.sin(u * 2 - time * .65);
-          const radius = 1.12 + .2 * Math.cos(3 * u + time * .5) + .09 * Math.sin(5 * u - time * .3);
-          const lift = .3 * Math.sin(3 * u - time * .45);
-          const width = .45 + .12 * Math.sin(2 * u + time * .8) + beat * .025 + burst * .045;
+          const wave = 3 * u + time * .58;
+          const tension = Math.tanh(Math.sin(wave) * 2.45);
+          let delta = Math.atan2(Math.sin(u - cursorU), Math.cos(u - cursorU));
+          const pull = hover * Math.exp(-delta * delta * 2.1);
+          const twist = u * 1.5 + 1.05 * Math.sin(u * 2 - time * .72) + pull * (pointer?.x || 0) * 2.2;
+          const radius = 1.12 + .3 * tension + .14 * Math.sin(7 * u - time * .38) + pull * (.28 + Math.abs(pointer?.y || 0) * .38);
+          const lift = .48 * Math.sin(wave - .72) + .15 * Math.sin(5 * u + time * .33) + pull * (pointer?.y || 0) * 1.35;
+          const width = .43 + .2 * Math.sin(2 * u + time * .9) - .08 * tension + pull * .24 + beat * .045 + burst * .09;
           for (let j = 0; j <= rows; j++) {
             const v = (j / rows * 2 - 1) * width;
-            const fold = Math.abs(v / width) * .022 * Math.sin(u * 14 + time * .4);
+            const edge = Math.abs(v / width);
+            const fold = edge * (.035 + pull * .06) * Math.sin(u * 14 + time * .55);
             const r = radius + v * Math.cos(twist);
             const k = (i * (rows + 1) + j) * 3;
-            points[k] = r * Math.cos(u);
-            points[k + 1] = r * Math.sin(u);
-            points[k + 2] = v * Math.sin(twist) + lift + fold;
+            const shear = pull * delta * .32;
+            points[k] = r * Math.cos(u) - shear * Math.sin(u);
+            points[k + 1] = r * Math.sin(u) + shear * Math.cos(u);
+            points[k + 2] = v * Math.sin(twist) + lift + fold + pull * Math.sin(delta * 2) * .24;
           }
         }
         geometry.attributes.position.needsUpdate = true;
         geometry.computeVertexNormals();
-        group.rotation.set(.38 + Math.sin(time * .27) * .42 + drift.y * .4, .32 + Math.sin(time * .21) * .5 + drift.x * .45, time * .14);
+        group.rotation.set(.38 + Math.sin(time * .3) * .52 + drift.y * 1.05, .32 + Math.sin(time * .23) * .68 + drift.x * 1.2, time * .18 + drift.x * .22);
         renderer.render(scene, camera);
         return true;
       }

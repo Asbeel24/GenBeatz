@@ -6,7 +6,7 @@
   let slowFrames = 0, frameInterval = 32;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   let motion = !reduce.matches, visible = true, raf = 0, last = 0, phase = 0, burst = 0;
-  let width = 0, height = 0, pointer = { x: 0, y: 0 }, drift = { x: 0, y: 0 };
+  let width = 0, height = 0, pointer = { x: 0, y: 0, active: false }, drift = { x: 0, y: 0 };
   // Fixed neighbouring vertices keep the wire mesh linear in size (no all-pairs search).
   const columns = 100, rows = 18;
   const vertices = Array.from({ length: columns * rows }, (_, i) => ({
@@ -19,7 +19,7 @@
     ctx.clearRect(0, 0, width, height);
     const running = !!playing;
     const beat = running ? Math.pow((1 + Math.cos((playing.ctx.currentTime - playing.t0) * current().bpm / 60 * Math.PI * 2)) / 2, 6) : 0;
-    if (sculpture?.render(time, beat, drift, burst)) return;
+    if (sculpture?.render(time, beat, drift, burst, pointer)) return;
     const cx = width * (width < 760 ? .83 : .68) + drift.x * 16, cy = height * .51 + drift.y * 10;
     const radius = Math.min(height * .7, width * .26);
     // Perspective-projected toroidal mesh. Colour lives on the object, not a backlight.
@@ -87,8 +87,9 @@
   function resize() { const box = stage.getBoundingClientRect(); if (!box.width || !box.height) return; width = box.width; height = box.height; const dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr); ctx?.setTransform(dpr, 0, 0, dpr, 0, 0); sculpture?.resize(width, height); draw(phase); }
   new ResizeObserver(resize).observe(stage);
   new IntersectionObserver(entries => { visible = entries[0].isIntersecting; sync(); }).observe(stage);
-  stage.addEventListener('pointermove', e => { const b = stage.getBoundingClientRect(); pointer = { x: (e.clientX - b.left) / b.width - .5, y: (e.clientY - b.top) / b.height - .5 }; });
-  stage.addEventListener('pointerleave', () => { pointer = { x: 0, y: 0 }; });
+  stage.addEventListener('pointermove', e => { const b = stage.getBoundingClientRect(); pointer = { x: (e.clientX - b.left) / b.width - .5, y: (e.clientY - b.top) / b.height - .5, active: true }; });
+  stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pointer.active = true; burst = 1.45; });
+  stage.addEventListener('pointerleave', () => { pointer = { x: 0, y: 0, active: false }; });
   function motionUI() { byId('motionToggle').textContent = '动效 / ' + (motion ? 'ON' : 'OFF'); byId('motionToggle').setAttribute('aria-pressed', String(motion)); sync(); }
   byId('motionToggle').addEventListener('click', () => { motion = !motion; motionUI(); });
   reduce.addEventListener('change', () => { motion = !reduce.matches; motionUI(); });
