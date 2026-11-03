@@ -1,7 +1,7 @@
 <title>GenBeatz</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
 /* Layout: hardware-console look — sample library rack on the left, pattern workbench on the right; single dark theme by choice */
 :root {
@@ -177,8 +177,79 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--panel-2); border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; z-index: 20; max-width: calc(100% - 32px); }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- UI directions (round 3): based on d4nn9.com — near-black, white type, hairlines, JetBrains Mono + Bebas Neue ---------- */
+:root[data-ui] {
+  --bg: #030303; --panel: rgba(255,255,255,0.015); --panel-2: rgba(255,255,255,0.045); --line: rgba(255,255,255,0.1); --fg: #f2f2f2; --muted: #6b6b6b;
+  --accent: #ffffff; --accent-ink: #030303; --cell: rgba(255,255,255,0.06); --cell-beat: rgba(255,255,255,0.1);
+  --display: "Bebas Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --body: "JetBrains Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --live: #ffffff;
+}
+:root[data-ui="a"] { --k: #ffffff; --s: #d6d6d6; --h: #a3a3a3; --o: #7d7d7d; --p: #bcbcbc; --r: #8f8f8f; --b: #e8e8e8; }
+:root[data-ui="b"] { --k: #ffffff; --s: #d6d6d6; --h: #a3a3a3; --o: #7d7d7d; --p: #bcbcbc; --r: #8f8f8f; --b: #e8e8e8; --live: #ff3b30; }
+:root[data-ui="c"] { --k: #f1e6cf; --s: #e8907f; --h: #8fc1cf; --o: #6f97a6; --p: #b7a6d9; --r: #d9a9c4; --b: #9fd0a8; }
+:root[data-ui] body { font-size: 13px; letter-spacing: 0.01em; }
+:root[data-ui] body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .07; mix-blend-mode: screen;
+  background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,.5) 0, rgba(255,255,255,.5) 1px, transparent 1px, transparent 8px); }
+:root[data-ui] .panel, :root[data-ui] .transport, :root[data-ui] .pack, :root[data-ui] .picker { border-radius: 0; border-color: var(--line); }
+:root[data-ui] .picker { background: #070707; }
+:root[data-ui] .transport { background: transparent; border-width: 0 0 1px; padding: 18px 0 20px; margin-bottom: 20px; }
+:root[data-ui] .logo { font-family: var(--display); font-size: 44px; font-weight: 400; letter-spacing: -0.01em; line-height: .9; }
+:root[data-ui] .logo span { color: var(--fg); opacity: .3; }
+:root[data-ui] .logo span::before { content: "/"; opacity: .6; margin: 0 .08em; }
+:root[data-ui] .tgroup, :root[data-ui] .klab, :root[data-ui] .hint, :root[data-ui] .summary, :root[data-ui] .meta { letter-spacing: .14em; }
+:root[data-ui] .slots { grid-template-columns: 96px minmax(0, 1fr) auto; }
+:root[data-ui] .slot-lab { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+:root[data-ui] .tgroup { font-size: 10px; text-transform: uppercase; color: var(--muted); }
+:root[data-ui] .panel h2 { font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .25em; color: var(--muted); }
+:root[data-ui] .panel h2::before { content: attr(data-n) " / "; color: var(--fg); }
+:root[data-ui] button, :root[data-ui] .btn, :root[data-ui] input[type=number], :root[data-ui] input[type=search], :root[data-ui] select { border-radius: 0; background: transparent; border-color: rgba(255,255,255,.16); font-family: var(--mono); }
+:root[data-ui] select option { background: #0b0b0b; }
+:root[data-ui] button:hover { border-color: rgba(255,255,255,.55); }
+:root[data-ui] button.small { font-size: 11px; letter-spacing: .04em; }
+:root[data-ui] button.primary, :root[data-ui] .seg button[aria-pressed="true"], :root[data-ui] .tabs button[aria-selected="true"] { background: #fff; color: #030303; border-color: #fff; }
+:root[data-ui] button.big { font-family: var(--display); font-size: 24px; font-weight: 400; letter-spacing: .08em; padding: 6px 26px; }
+:root[data-ui] button.play { background: transparent; color: var(--live); border-color: var(--live); }
+:root[data-ui] #work.playing button.play, :root[data-ui] .playing #playBtn { background: var(--live); color: #030303; }
+:root[data-ui] input.bpm { font-family: var(--display); font-weight: 400; font-size: 34px; color: #fff; background: transparent; border-color: rgba(255,255,255,.16); border-radius: 0; width: 96px; }
+:root[data-ui] .tabs button { font-family: var(--display); font-size: 18px; font-weight: 400; letter-spacing: .04em; min-width: 46px; padding: 2px 10px; }
+:root[data-ui] .num { font-family: var(--display); font-size: 34px; font-weight: 400; color: var(--fg); line-height: 1; }
+:root[data-ui] .title { font-family: var(--display); font-size: 24px; font-weight: 400; letter-spacing: .03em; }
+:root[data-ui] .card-head { border-left: 1px solid; border-image: linear-gradient(to bottom, #fff, transparent) 1; padding-left: 12px; }
+:root[data-ui] .chip { border-radius: 0; background: transparent; border: 1px solid var(--line); }
+:root[data-ui] .dial { background: conic-gradient(from 225deg, var(--fg) 0 calc(var(--p) * 270deg), rgba(255,255,255,.12) calc(var(--p) * 270deg) 270deg, transparent 270deg); }
+:root[data-ui] .dial::after { background: #030303; border-color: rgba(255,255,255,.14); }
+:root[data-ui] .steps .c, :root[data-ui] .arr-grid .blk { background: var(--cell); border-radius: 0; }
+:root[data-ui] .steps .c.beat { background: var(--cell-beat); }
+:root[data-ui] .steps .c.on, :root[data-ui] .steps .c.soft { background: var(--col); }
+:root[data-ui] .arr-grid .blk.on { background: var(--col); opacity: .8; }
+:root[data-ui] .steps.edit .c.ph { background: color-mix(in srgb, var(--live) 34%, transparent); }
+:root[data-ui] .steps.edit .c.on.ph, :root[data-ui] .steps.edit .c.roll.ph { box-shadow: 0 0 10px var(--live); filter: none; outline: 1px solid var(--live); outline-offset: -1px; }
+:root[data-ui] .arr-ph { background: var(--live); box-shadow: 0 0 8px var(--live); }
+:root[data-ui] .progress { background: rgba(255,255,255,.08); border-radius: 0; }
+:root[data-ui] .progress > i { background: var(--live); }
+:root[data-ui] .meter { background: rgba(255,255,255,.07); border-radius: 0; }
+:root[data-ui] .meter i { background: var(--fg); }
+:root[data-ui="c"] .meter i { background: var(--b); }
+:root[data-ui] .mixer .ms.on.m { background: transparent; border-color: #fff; color: #fff; text-decoration: line-through; }
+:root[data-ui] .mixer .ms.on.s { background: var(--live); border-color: var(--live); color: #030303; }
+:root[data-ui] .arr-grid .sec { border-radius: 0; background: rgba(255,255,255,.04); color: var(--fg); border-left: 1px solid var(--sc); }
+:root[data-ui="a"] .arr-grid .sec, :root[data-ui="b"] .arr-grid .sec { --sc: #fff; }
+:root[data-ui] .lm-tag { color: var(--fg); opacity: .55; }
+:root[data-ui] .pick-row.sel { background: rgba(255,255,255,.1); }
+:root[data-ui] .modes button[aria-pressed="true"] { border-color: #fff; color: #fff; }
+:root[data-ui] .drop { border-radius: 0; border-color: rgba(255,255,255,.2); }
+:root[data-ui] .toast { border-radius: 0; background: #0b0b0b; font-family: var(--mono); }
+:root[data-ui] input[type=checkbox] { accent-color: #fff; }
+.ui-switch { position: fixed; left: 16px; bottom: 16px; z-index: 60; display: flex; gap: 0; align-items: center; background: #0b0b0b; border: 1px solid rgba(255,255,255,.16); font-family: "JetBrains Mono", monospace; font-size: 11px; }
+.ui-switch span { padding: 6px 10px; color: #8a8a8a; letter-spacing: .14em; }
+.ui-switch button { border: 0; border-left: 1px solid rgba(255,255,255,.12); border-radius: 0; background: transparent; color: #cfcfcf; padding: 6px 10px; font-size: 11px; }
+.ui-switch button[aria-pressed="true"] { background: #fff; color: #030303; }
 </style>
 
+<div class="ui-switch" role="group" aria-label="UI 方向"><span>UI</span><button data-ui="">原版</button><button data-ui="a">A 纯黑白</button><button data-ui="b">B 黑白+信号红</button><button data-ui="c">C 黑底+柔和色</button></div>
 <div class="app">
   <header class="transport" aria-label="项目控制">
     <div class="logo" style="align-self:center">Gen<span>Beatz</span></div>
@@ -207,7 +278,7 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 
   <main class="grid">
     <section class="panel stack" aria-label="采样库">
-      <h2>采样库</h2>
+      <h2 data-n="01">采样库</h2>
       <div class="row">
         <label class="btn" for="dirInput">选择采样库文件夹</label>
         <input id="dirInput" class="vh" type="file" webkitdirectory directory multiple>
@@ -228,7 +299,7 @@ input[type=number] { width: 80px; font-family: var(--mono); }
     </section>
 
     <section class="panel mixer" aria-label="混音台">
-      <h2>混音台</h2>
+      <h2 data-n="03">混音台</h2>
       <div id="strips"></div>
       <div id="eq" class="eq"></div>
       <div class="row" style="margin-top:10px"><label class="check"><input id="tuneChk" type="checkbox"> 808 跟随 loop 调性</label></div>
@@ -1914,6 +1985,13 @@ document.addEventListener('keydown', e => {
   e.preventDefault(); if (playing) stopPlayback(); else playDemo(current());
 });
 
+function setUi(v) {
+  if (v) document.documentElement.setAttribute('data-ui', v); else document.documentElement.removeAttribute('data-ui');
+  for (const b of document.querySelectorAll('.ui-switch button')) b.setAttribute('aria-pressed', String(b.dataset.ui === v));
+  store.set('gb.ui', v);
+}
+for (const b of document.querySelectorAll('.ui-switch button')) b.addEventListener('click', () => setUi(b.dataset.ui));
+setUi(store.get('gb.ui', 'a'));
 addBuiltin();
 initParams();
 renderLibrary();
