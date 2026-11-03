@@ -188,8 +188,6 @@ input[type=number] { width: 80px; font-family: var(--mono); }
   --live: #ffffff;
 }
 :root[data-ui="a"] { --k: #ffffff; --s: #d6d6d6; --h: #a3a3a3; --o: #7d7d7d; --p: #bcbcbc; --r: #8f8f8f; --b: #e8e8e8; }
-:root[data-ui="b"] { --k: #ffffff; --s: #d6d6d6; --h: #a3a3a3; --o: #7d7d7d; --p: #bcbcbc; --r: #8f8f8f; --b: #e8e8e8; --live: #ff3b30; }
-:root[data-ui="c"] { --k: #f1e6cf; --s: #e8907f; --h: #8fc1cf; --o: #6f97a6; --p: #b7a6d9; --r: #d9a9c4; --b: #9fd0a8; }
 :root[data-ui] body { font-size: 13px; letter-spacing: 0.01em; }
 :root[data-ui] body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .07; mix-blend-mode: screen;
   background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,.5) 0, rgba(255,255,255,.5) 1px, transparent 1px, transparent 8px); }
@@ -232,24 +230,43 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 :root[data-ui] .progress > i { background: var(--live); }
 :root[data-ui] .meter { background: rgba(255,255,255,.07); border-radius: 0; }
 :root[data-ui] .meter i { background: var(--fg); }
-:root[data-ui="c"] .meter i { background: var(--b); }
 :root[data-ui] .mixer .ms.on.m { background: transparent; border-color: #fff; color: #fff; text-decoration: line-through; }
 :root[data-ui] .mixer .ms.on.s { background: var(--live); border-color: var(--live); color: #030303; }
 :root[data-ui] .arr-grid .sec { border-radius: 0; background: rgba(255,255,255,.04); color: var(--fg); border-left: 1px solid var(--sc); }
-:root[data-ui="a"] .arr-grid .sec, :root[data-ui="b"] .arr-grid .sec { --sc: #fff; }
+:root[data-ui] .arr-grid .sec { --sc: #fff; }
 :root[data-ui] .lm-tag { color: var(--fg); opacity: .55; }
 :root[data-ui] .pick-row.sel { background: rgba(255,255,255,.1); }
 :root[data-ui] .modes button[aria-pressed="true"] { border-color: #fff; color: #fff; }
 :root[data-ui] .drop { border-radius: 0; border-color: rgba(255,255,255,.2); }
 :root[data-ui] .toast { border-radius: 0; background: #0b0b0b; font-family: var(--mono); }
 :root[data-ui] input[type=checkbox] { accent-color: #fff; }
-.ui-switch { position: fixed; left: 16px; bottom: 16px; z-index: 60; display: flex; gap: 0; align-items: center; background: #0b0b0b; border: 1px solid rgba(255,255,255,.16); font-family: "JetBrains Mono", monospace; font-size: 11px; }
-.ui-switch span { padding: 6px 10px; color: #8a8a8a; letter-spacing: .14em; }
-.ui-switch button { border: 0; border-left: 1px solid rgba(255,255,255,.12); border-radius: 0; background: transparent; color: #cfcfcf; padding: 6px 10px; font-size: 11px; }
-.ui-switch button[aria-pressed="true"] { background: #fff; color: #030303; }
+:root[data-ui] .transport { align-items: flex-end; gap: 12px 22px; }
+:root[data-ui] .transport .sep { background: rgba(255,255,255,.1); }
+:root[data-ui] .transport #genBtn { min-width: 140px; }
+:root[data-ui] button.play { width: 56px; height: 46px; font-size: 18px; }
+:root[data-ui] .grid { gap: 0; border: 1px solid var(--line); }
+:root[data-ui] .grid > .panel { border-width: 0; background: transparent; padding: 20px; }
+:root[data-ui] .grid > .panel + .panel { border-left: 1px solid var(--line); }
+@media (max-width: 1180px) { :root[data-ui] .grid > .mixer { border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 760px) { :root[data-ui] .grid > .panel + .panel { border-left: 0; border-top: 1px solid var(--line); } :root[data-ui] .transport { gap: 10px 14px; } }
+:root[data-ui] .panel h2 { margin: 0 0 4px; text-transform: uppercase; }
+:root[data-ui] .exportbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 6px; }
+:root[data-ui] .exportbar .xlab { font-size: 10px; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); }
+:root[data-ui] .slot-btns { gap: 0; }
+:root[data-ui] .slot-btns button { border-color: transparent; color: #9a9a9a; padding: 3px 8px; }
+:root[data-ui] .slot-btns button + button { border-left: 1px solid rgba(255,255,255,.08); }
+:root[data-ui] .slot-btns button:hover:not(:disabled) { color: #fff; border-color: rgba(255,255,255,.3); }
+:root[data-ui] .slot-btns button.on { color: #030303; background: #fff; border-color: #fff; }
+:root[data-ui] .slots > * { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+:root[data-ui] .gridbar button.on { background: #fff; color: #030303; border-color: #fff; }
+:root[data-ui] .pack { background: transparent; }
+:root[data-ui] .pack-name { font-weight: 500; }
+:root[data-ui] .mixer .strip.sel { background: rgba(255,255,255,.04); border-color: var(--line); border-radius: 0; }
+:root[data-ui] .mixer input[type=range], :root[data-ui] .eq input[type=range] { accent-color: #fff; }
+:root[data-ui] .knobs { gap: 26px; }
 </style>
 
-<div class="ui-switch" role="group" aria-label="UI 方向"><span>UI</span><button data-ui="">原版</button><button data-ui="a">A 纯黑白</button><button data-ui="b">B 黑白+信号红</button><button data-ui="c">C 黑底+柔和色</button></div>
+<script>document.documentElement.setAttribute('data-ui', 'a');</script>
 <div class="app">
   <header class="transport" aria-label="项目控制">
     <div class="logo" style="align-self:center">Gen<span>Beatz</span></div>
@@ -260,25 +277,15 @@ input[type=number] { width: 80px; font-family: var(--mono); }
     <div class="tgroup">长度<div id="lenSeg" class="seg"><button aria-pressed="true" data-v="loop">Loop · 8 小节</button><button data-v="song" aria-pressed="false">全曲</button></div></div>
     <label class="tgroup">数量<input id="countInput" type="number" min="1" max="20" value="6"></label>
     <label class="tgroup">鼓的搭配<select id="modeSel"><option value="pack">同包优先</option><option value="mix">跨包混搭</option></select></label>
-    <span class="sep"></span>
+    <span class="spacer"></span>
     <button id="genBtn" class="primary big">生成</button>
     <button id="playBtn" class="primary play playbtn" title="播放 / 停止（空格）" aria-label="播放">▶</button>
-    <span class="sep"></span>
-    <div class="tgroup">导出
-      <div class="row" style="gap:10px">
-        <label class="check"><input id="fmtWav" type="checkbox" checked> WAV</label>
-        <label class="check"><input id="fmtMp3" type="checkbox" checked> MP3</label>
-        <label class="check"><input id="fmtStems" type="checkbox" checked> 分轨</label>
-        <button id="exportOne">导出当前</button>
-        <button id="exportAll">全部导出</button>
-      </div>
-    </div>
   </header>
   <div id="genInfo" class="hint" style="margin:-8px 0 12px"></div>
 
   <main class="grid">
     <section class="panel stack" aria-label="采样库">
-      <h2 data-n="01">采样库</h2>
+      <h2 data-n="01">Library · 采样库</h2>
       <div class="row">
         <label class="btn" for="dirInput">选择采样库文件夹</label>
         <input id="dirInput" class="vh" type="file" webkitdirectory directory multiple>
@@ -291,15 +298,25 @@ input[type=number] { width: 80px; font-family: var(--mono); }
     </section>
 
     <section id="work" class="panel stack" aria-label="工作台" style="min-width:0">
+      <h2 data-n="02" id="wsTitle">Pattern</h2>
       <div class="ws-top">
         <div id="tabs" class="tabs" role="tablist" aria-label="demo"></div>
         <div class="modes" id="viewSeg"><button aria-pressed="true" data-v="pattern">Pattern</button><button aria-pressed="false" data-v="arrange">Arrange</button></div>
       </div>
       <div id="ws"></div>
+      <div class="exportbar" aria-label="导出">
+        <span class="xlab">导出</span>
+        <label class="check"><input id="fmtWav" type="checkbox" checked> WAV</label>
+        <label class="check"><input id="fmtMp3" type="checkbox" checked> MP3</label>
+        <label class="check"><input id="fmtStems" type="checkbox" checked> 分轨</label>
+        <span class="spacer"></span>
+        <button id="exportOne">导出当前</button>
+        <button id="exportAll" class="primary">全部导出</button>
+      </div>
     </section>
 
     <section class="panel mixer" aria-label="混音台">
-      <h2 data-n="03">混音台</h2>
+      <h2 data-n="03">Mixer · 混音台</h2>
       <div id="strips"></div>
       <div id="eq" class="eq"></div>
       <div class="row" style="margin-top:10px"><label class="check"><input id="tuneChk" type="checkbox"> 808 跟随 loop 调性</label></div>
@@ -1971,7 +1988,7 @@ function setLen(v) {
   renderWork(); if (playing) playDemo(playing.d);
 }
 function setView(v, quiet) {
-  view = v;
+  view = v; $('#wsTitle').textContent = v === 'arrange' ? 'Arrange · 全曲编排' : 'Pattern · 鼓型';
   for (const b of document.querySelectorAll('#viewSeg button')) b.setAttribute('aria-pressed', String(b.dataset.v === v));
   if (v === 'arrange' && P.len !== 'song') { setLen('song'); return; }
   if (!quiet) renderWork();
@@ -1985,13 +2002,6 @@ document.addEventListener('keydown', e => {
   e.preventDefault(); if (playing) stopPlayback(); else playDemo(current());
 });
 
-function setUi(v) {
-  if (v) document.documentElement.setAttribute('data-ui', v); else document.documentElement.removeAttribute('data-ui');
-  for (const b of document.querySelectorAll('.ui-switch button')) b.setAttribute('aria-pressed', String(b.dataset.ui === v));
-  store.set('gb.ui', v);
-}
-for (const b of document.querySelectorAll('.ui-switch button')) b.addEventListener('click', () => setUi(b.dataset.ui));
-setUi(store.get('gb.ui', 'a'));
 addBuiltin();
 initParams();
 renderLibrary();
