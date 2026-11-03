@@ -136,6 +136,15 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 .arr-ph { --x: 0; position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 6px var(--accent); left: calc(74px + (100% - 74px) * var(--x)); pointer-events: none; display: none; }
 #work.playing .arr-ph { display: block; }
 .gridbar select { width: auto; max-width: 320px; }
+.loopname { all: unset; cursor: pointer; border-radius: 4px; padding: 1px 4px; margin-left: -4px; }
+.loopname:hover { background: var(--panel-2); }
+.loopname:focus-visible { outline: 2px solid var(--accent); }
+.lm-tag { margin-left: 8px; font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.lm-opts { display: grid; gap: 8px; }
+.lm-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.lm-opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.lm-opt > span { display: grid; gap: 3px; }
+.lm-opt input { accent-color: var(--accent); margin-top: 3px; }
 .pick-ov { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 50; padding: 16px; }
 .picker { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; width: min(720px, 100%); max-height: min(640px, 90vh); display: flex; flex-direction: column; gap: 10px; padding: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
 .pick-head, .pick-ctl, .pick-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -890,6 +899,45 @@ function stretched(s, B, speed) {
   return stretchCache.get(k);
 }
 // gather buffers and all timed events (drums + loop segments) for one demo
+const loopMode = (d, ls) => (d.loopMode && d.loopMode[ls]) || P.loopModeDef || 'keep';
+function loopSpeed(d, L) {
+  const lb = L.bpm, m = loopMatch(L, d.bpm) || { eff: lb ? [lb, lb * 2, lb / 2].reduce((a, b) => Math.abs(Math.log(b / d.bpm)) < Math.abs(Math.log(a / d.bpm)) ? b : a) : d.bpm };
+  return { eff: m.eff, speed: d.bpm / m.eff };
+}
+// loop settings: how a loop is fitted to the project tempo
+function openLoopSettings(d, sl) {
+  closePicker();
+  const L = d.slots[sl]; if (!L) return;
+  const { eff, speed } = loopSpeed(d, L), semis = 12 * Math.log2(speed), cur = loopMode(d, sl);
+  const opt = (v, title, desc) => {
+    const r = el('input', { type: 'radio', name: 'lm', value: v, checked: v === cur });
+    return el('label', { class: 'lm-opt' }, r, el('span', {}, el('strong', {}, title), el('span', { class: 'hint' }, desc)));
+  };
+  const same = Math.abs(speed - 1) < 0.004;
+  const info = !L.bpm ? '这个 loop 没有 BPM 信息，会按原样播放。' : same ? `原速 ${L.bpm} BPM，和工程速度 ${d.bpm} 一致，不需要拉伸。` : `原速 ${L.bpm} BPM${eff !== L.bpm ? `（按 ${eff} 对齐）` : ''} → 工程 ${d.bpm} BPM，速度 ${speed > 1 ? '+' : ''}${((speed - 1) * 100).toFixed(1)}%。`;
+  const form = el('div', { class: 'lm-opts' },
+    opt('keep', '保持音高', '只改速度，调性不变（time-stretch）。拉得多的时候声音会有一点颗粒感。'),
+    opt('vari', '跟着变速', same || !L.bpm ? '像唱机那样连音高一起变。现在速度一致，听不出区别。' : `像唱机那样连音高一起变：这里会${semis > 0 ? '升高' : '降低'} ${Math.abs(semis).toFixed(2)} 个半音，声音更自然，但调会偏。`));
+  const allChk = el('input', { type: 'checkbox' });
+  const ok = el('button', { class: 'primary' }, '应用');
+  ok.addEventListener('click', () => {
+    const v = form.querySelector('input:checked').value;
+    if (allChk.checked) { P.loopModeDef = v; for (const x of demos) x.loopMode = {}; }
+    else { d.loopMode = d.loopMode || {}; d.loopMode[sl] = v; }
+    closePicker(); for (const x of demos) x.mix = null; refreshDemo(d);
+  });
+  const close = el('button', { class: 'small', 'aria-label': '关闭' }, '✕'); close.addEventListener('click', closePicker);
+  const box = el('div', { class: 'picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Loop 设置', style: 'width:min(520px,100%)' },
+    el('div', { class: 'pick-head' }, el('strong', {}, `${SLOT_LABEL[sl]} 设置`), el('span', { class: 'spacer' }), close),
+    el('div', { class: 'hint' }, L.pack + ' / ' + (L.path ? L.path.split('/').slice(-1)[0] : L.name)),
+    el('div', {}, info),
+    form,
+    el('div', { class: 'pick-foot' }, el('label', { class: 'check' }, allChk, ' 所有 demo 的 loop 都这样'), el('span', { class: 'spacer' }), ok));
+  const ov = el('div', { class: 'pick-ov', id: 'pickOv' }, box);
+  ov.addEventListener('pointerdown', e => { if (e.target === ov) closePicker(); });
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape') closePicker(); e.stopPropagation(); });
+  document.body.append(ov); ok.focus();
+}
 async function prepare(d) {
   const { ev, dur, bar, ranges } = buildEvents(d);
   const bufs = {};
@@ -902,13 +950,13 @@ async function prepare(d) {
     if (!bufs[ls]) continue;
     const L = d.slots[ls], lb = L.bpm;
     const m = loopMatch(L, d.bpm) || { eff: lb ? [lb, lb * 2, lb / 2].reduce((a, b) => Math.abs(Math.log(b / d.bpm)) < Math.abs(Math.log(a / d.bpm)) ? b : a) : d.bpm };
-    const speed = d.bpm / m.eff;
-    bufs[ls] = stretched(L, bufs[ls], speed);
-    const lenSec = bufs[ls].buffer.duration;
+    const speed = d.bpm / m.eff, vari = loopMode(d, ls) === 'vari' && Math.abs(speed - 1) >= 0.004;
+    if (!vari) bufs[ls] = stretched(L, bufs[ls], speed); // keep pitch: WSOLA time-stretch; varispeed: play faster/slower like a turntable
+    const lenSec = bufs[ls].buffer.duration / (vari ? speed : 1);
     const loopBars = [1, 2, 4, 8, 16].reduce((a, b) => Math.abs(Math.log2(b * bar / lenSec)) < Math.abs(Math.log2(a * bar / lenSec)) ? b : a, 1);
     const seg = loopBars * bar;
     if (ls === 'loop') d.loopInfo = { bars: loopBars, stretched: Math.abs(speed - 1) >= 0.004 ? speed : 1 };
-    for (const [a, b, rs] of ranges) if (rs === ls) for (let t = a; t < b - 0.001; t += seg) events.push({ slot: ls, t, v: 1, dur: Math.min(seg, lenSec, b - t) });
+    for (const [a, b, rs] of ranges) if (rs === ls) for (let t = a; t < b - 0.001; t += seg) events.push({ slot: ls, t, v: 1, dur: Math.min(seg, lenSec, b - t), rate: vari ? speed : undefined });
   }
   events.sort((a, b) => a.t - b.t);
   return { events, dur, bufs, rate808 };
@@ -923,7 +971,7 @@ function voiceEngine(ctx, bus, prep) {
     const grp = VOICE_GROUP[e.slot], prev = voices[grp];
     if (prev && prev.end > t) { prev.g.gain.setTargetAtTime(0, Math.max(prev.t, t - 0.004), 0.0015); try { prev.src.stop(t + 0.03); } catch (x) {} }
     const src = ctx.createBufferSource(); src.buffer = B.buffer;
-    if (e.slot === 'bass808') src.playbackRate.value = prep.rate808;
+    if (e.slot === 'bass808') src.playbackRate.value = prep.rate808; else if (e.rate) src.playbackRate.value = e.rate;
     const g = ctx.createGain(), lvl = e.v * GAIN[e.slot] * B.norm;
     g.gain.setValueAtTime(lvl, t);
     const ed = e.dur ? e.dur - off : 0, len = (ed || B.buffer.duration / src.playbackRate.value - off);
@@ -1465,8 +1513,9 @@ function renderWork() {
   const pl = pools(d.params);
   for (const sl of SLOTS) {
     const s = d.slots[sl];
+    if (sl === 'loop' && s) { row('loop', loopName(d, 'loop'), (pl.loop || []).length > 1); continue; }
     if (sl === 'loop2') {
-      if (s) row('loop2', [el('span', { class: 'pk' }, s.pack + ' / '), s.path ? s.path.split('/').slice(-1)[0] : s.name], true);
+      if (s) row('loop2', loopName(d, 'loop2'), true);
       else {
         const add = el('button', { class: 'small', title: '随机加一个速度和调性都对得上的 loop' }, '+ 随机加一个');
         add.addEventListener('click', () => { const c = pickLoop2(d); if (!c) { toast('没有和这条速度、调性对得上的第二个 loop，可以点「选择音色」手动挑'); return; } d.slots.loop2 = c; refreshDemo(d); });
@@ -1522,6 +1571,13 @@ function swapSlot(d, sl) {
   refreshDemo(d);
 }
 // ---------- sound picker: choose a specific sample from the library, or load one file from the computer
+function loopName(d, sl) {
+  const s = d.slots[sl], { speed } = loopSpeed(d, s), off = s.bpm && Math.abs(speed - 1) >= 0.004;
+  const tag = !s.bpm ? '没有 BPM' : off ? `原速 ${s.bpm} → ${d.bpm} · ${loopMode(d, sl) === 'vari' ? `变速 ${12 * Math.log2(speed) > 0 ? '+' : ''}${(12 * Math.log2(speed)).toFixed(1)} 半音` : '保持音高'}` : '原速';
+  const b = el('button', { class: 'loopname', title: '点击设置拉伸方式' }, el('span', { class: 'pk' }, s.pack + ' / '), s.path ? s.path.split('/').slice(-1)[0] : s.name, el('span', { class: 'lm-tag' }, tag + ' ⚙'));
+  b.addEventListener('click', () => openLoopSettings(d, sl));
+  return b;
+}
 const PICK_CATS = { kick: ['kick'], back: ['snare', 'clap'], hat: ['hat'], ohat: ['ohat'], perc: ['perc'], rim: ['rim', 'perc'], bass808: ['bass808'], loop: ['loop'], loop2: ['loop'] };
 function openPicker(d, sl) {
   closePicker();
