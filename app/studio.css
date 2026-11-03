@@ -1,6 +1,6 @@
 /* GenBeatz studio: quiet controls around an expressive, generative centre. */
 :root {
-  --bg:#0b0d0e; --panel:#121516; --panel-2:#1b1f20; --line:#2a3030;
+  --bg:#111213; --panel:#181a1b; --panel-2:#232627; --line:#323637;
   --fg:#efeee8; --muted:#a2a8a7; --accent:#b8ebc4; --accent-ink:#17271e;
   --k:#b8ebc4; --s:#b8a1e4; --h:#a7caca; --o:#83a5b0; --p:#d0bda1; --r:#d6a9c1; --b:#c8d58d;
   --display:"Bebas Neue","PingFang SC",sans-serif;
@@ -26,8 +26,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .head-actions button { font-size:12px; background:transparent; border-color:transparent; color:var(--muted); }
 .head-actions button[aria-expanded=true] { color:var(--fg); }
 .head-actions #mixToggle { border-color:var(--line); }
-.art-stage { position:relative; height:264px; max-width:1680px; margin:auto; overflow:hidden; background:#0a0e0f; border-bottom:1px solid var(--line); isolation:isolate; }
-.art-stage::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.08; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' filter='url(%23n)' opacity='.25' d='M0 0h180v180H0z'/%3E%3C/svg%3E"); }
+.art-stage { position:relative; height:264px; max-width:1680px; margin:auto; overflow:hidden; background:#040607; border-bottom:1px solid var(--line); isolation:isolate; }
+.art-stage::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.035; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' filter='url(%23n)' opacity='.25' d='M0 0h180v180H0z'/%3E%3C/svg%3E"); }
 #particles { position:absolute; width:100%; height:100%; inset:0; }
 .art-copy { position:relative; pointer-events:none; padding:28px 42px; width:max-content; max-width:65%; }
 .eyebrow { color:#b3b7b5; }
@@ -117,3 +117,11 @@ button.play[aria-label="停止"] { background:var(--accent); color:var(--accent-
 @media (max-width:1100px) { .edition { display:none; } .transport { gap:14px; } .transport .spacer { display:none; } .grid { grid-template-columns:210px minmax(0,1fr); } .slots { grid-template-columns:65px minmax(0,1fr); } .slot-btns { grid-column:2; flex-wrap:wrap; padding-top:0; } .slot-name { border:0; } .art-meta { display:none; } }
 @media (max-width:760px) { .masthead { padding:16px; gap:12px; flex-wrap:wrap; } .wordmark { font-size:30px; } .head-actions { gap:0; } .head-actions button { padding:6px 8px; font-size:10px; } .art-stage { height:240px; } .art-copy { padding:28px 20px; max-width:90%; } .eyebrow { font-size:8px; letter-spacing:1px; } h1 { font-size:57px; } .art-controls { right:16px; bottom:14px; } .app { padding:0 14px 28px; } .grid { grid-template-columns:minmax(0,1fr); } .library .packs { max-height:190px; } .transport { gap:14px 16px; } .session-label, .transport .sep { display:none; } .session-status > span:last-child { display:none; } #work { padding:16px 12px; } .ws-top { gap:12px; } .slots { grid-template-columns:55px minmax(0,1fr); } .slot-name { white-space:normal; overflow-wrap:anywhere; } #strips { grid-template-columns:minmax(0,1fr); } .art-copy p { font-size:10px; } }
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+/* Dim the visual panel independently; the canvas keeps its own luminance. */
+.art-copy { color:#b1b7b3; }
+.art-copy h1 em { color:#8db59a; }
+.art-copy .eyebrow { color:#7d8982; }
+.art-copy p { color:#7e8a83; }
+.art-meta { color:#7f8a85; }
+.art-label { color:#92a99e; }

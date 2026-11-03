@@ -5,9 +5,13 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   let motion = !reduce.matches, visible = true, raf = 0, last = 0, phase = 0, burst = 0;
   let width = 0, height = 0, pointer = { x: 0, y: 0 }, drift = { x: 0, y: 0 };
-  const dots = Array.from({ length: 2600 }, (_, i) => ({
-    a: i * 2.399963, ring: Math.sqrt((Math.sin(i * 78.233) * 43758.5453) % 1 + 1) / Math.sqrt(2), z: Math.sin(i * 17.13), size: .45 + (i % 7) * .15
+  // Fixed neighbouring vertices keep the wire mesh linear in size (no all-pairs search).
+  const columns = 100, rows = 18;
+  const vertices = Array.from({ length: columns * rows }, (_, i) => ({
+    u: Math.floor(i / rows) / columns * Math.PI * 2,
+    v: (i % rows) / rows * Math.PI * 2
   }));
+  const projected = vertices.map(() => ({ x: 0, y: 0, z: 0, light: 0, hue: 0 }));
   function draw(time) {
     if (!ctx || !width || !height) return;
     ctx.clearRect(0, 0, width, height);
@@ -15,25 +19,48 @@
     const beat = running ? Math.pow((1 + Math.cos((playing.ctx.currentTime - playing.t0) * current().bpm / 60 * Math.PI * 2)) / 2, 6) : 0;
     const cx = width * (width < 760 ? .83 : .68) + drift.x * 16, cy = height * .51 + drift.y * 10;
     const radius = Math.min(height * .7, width * .26);
-    // Directional lighting on a slowly turning particle ribbon; no coloured backdrop.
-    const tilt = .35 + Math.sin(time * .16) * .12;
-    for (const p of dots) {
-      const a = p.a + time * .11;
-      const tube = p.z * Math.PI + time * .19;
-      const r = radius * (.72 + Math.cos(tube) * .16 * p.ring + Math.sin(a * 3 + time * .3) * .035 + beat * .018 + burst * .025);
-      const depth = Math.sin(a) * Math.sin(tilt) + Math.sin(tube) * .32;
-      const perspective = 1 + depth * .15;
-      const x = cx + Math.cos(a) * r * perspective;
-      const y = cy + (Math.sin(a) * r * .61 + Math.sin(tube) * radius * .14) * perspective;
-      const light = Math.max(0, Math.cos(a + 2.1 + drift.x * .5) * .65 + Math.sin(tube + .6) * .35);
-      const specular = Math.pow(light, 9);
-      const alpha = .14 + (depth + .7) * .2 + light * .34;
-      const size = p.size * (.65 + (depth + .7) * .3 + specular * .3);
-      ctx.fillStyle = `hsla(${164 + p.z * 10},${24 + light * 14}%,${38 + light * 38 + specular * 20}%,${alpha})`;
-      ctx.beginPath(); ctx.arc(x, y, Math.max(.3, size), 0, Math.PI * 2); ctx.fill();
-      if (specular > .38) {
-        ctx.fillStyle = `rgba(185,235,218,${specular * .075})`;
-        ctx.beginPath(); ctx.arc(x, y, size * 3.5, 0, Math.PI * 2); ctx.fill();
+    // Perspective-projected toroidal mesh. Colour lives on the object, not a backlight.
+    const tilt = .72 + Math.sin(time * .16) * .12 + drift.y * .18;
+    const spin = time * .12 + drift.x * .12;
+    for (let i = 0; i < vertices.length; i++) {
+      const { u, v } = vertices[i];
+      const a = u + spin;
+      const tube = v + Math.sin(u * 3 + time * .35) * .42;
+      const major = radius * (.72 + Math.sin(u * 3 + time * .28) * .04);
+      const minor = radius * (.14 + beat * .012 + burst * .022);
+      const ring = major + Math.cos(tube) * minor;
+      const x = Math.cos(a) * ring;
+      const y = Math.sin(a) * ring;
+      const z = Math.sin(tube) * minor;
+      const rotatedY = y * Math.cos(tilt) - z * Math.sin(tilt);
+      const depth = y * Math.sin(tilt) + z * Math.cos(tilt);
+      const perspective = 1 / (1 - depth / (radius * 4));
+      const light = .5 + .5 * Math.cos(a - .8) * Math.cos(tube - .4);
+      Object.assign(projected[i], {
+        x: cx + x * perspective, y: cy + rotatedY * perspective,
+        z: depth / radius, light, hue: 162 + (Math.cos(a + .6) + 1) * 39
+      });
+    }
+    ctx.lineWidth = .55;
+    for (let i = 0; i < projected.length; i++) {
+      const p = projected[i];
+      const col = Math.floor(i / rows), row = i % rows;
+      const right = projected[((col + 1) % columns) * rows + row];
+      const across = projected[col * rows + (row + 1) % rows];
+      const alpha = .12 + (p.z + 1) * .085 + p.light * .15;
+      ctx.strokeStyle = `hsla(${p.hue},55%,${60 + p.light * 22}%,${alpha})`;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(right.x, right.y);
+      ctx.moveTo(p.x, p.y); ctx.lineTo(across.x, across.y); ctx.stroke();
+    }
+    for (let i = 0; i < projected.length; i++) {
+      const p = projected[i];
+      const highlight = Math.pow(p.light, 7);
+      const size = .55 + (p.z + 1) * .2 + highlight * .4;
+      ctx.fillStyle = `hsla(${p.hue},${40 - highlight * 20}%,${72 + highlight * 24}%,${.5 + (p.z + 1) * .17})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI * 2); ctx.fill();
+      if (highlight > .65 && i % 3 === 0) {
+        ctx.fillStyle = `rgba(204,246,232,${highlight * .08})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2); ctx.fill();
       }
     }
     // A small constellation drifts outside the central form.
