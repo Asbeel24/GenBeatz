@@ -136,6 +136,9 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 .arr-ph { --x: 0; position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 6px var(--accent); left: calc(74px + (100% - 74px) * var(--x)); pointer-events: none; display: none; }
 #work.playing .arr-ph { display: block; }
 .gridbar select { width: auto; max-width: 320px; }
+.inst-row { display: flex; align-items: center; gap: 8px; }
+.inst-row .slot-lab { width: 80px; flex: none; }
+.inst-val { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
 .loopname { all: unset; cursor: pointer; border-radius: 4px; padding: 1px 4px; margin-left: -4px; }
 .loopname:hover { background: var(--panel-2); }
 .loopname:focus-visible { outline: 2px solid var(--accent); }
@@ -268,8 +271,8 @@ const newSeed = () => (Math.random() * 4294967296) >>> 0;
 const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
 
 // ---------- categories & filename parsing
-const CAT_LABEL = { kick: 'Kick', snare: 'Snare', clap: 'Clap', hat: 'Hi-hat', ohat: 'Open hat', perc: 'Perc', rim: 'Rim', bass808: '808', loop: '旋律 Loop', fx: 'FX', drumloop: '鼓 Loop', other: '未分类' };
-const CAT_ORDER = ['kick', 'snare', 'clap', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop', 'fx', 'drumloop', 'other'];
+const CAT_LABEL = { kick: 'Kick', snare: 'Snare', clap: 'Clap', hat: 'Hi-hat', ohat: 'Open hat', perc: 'Perc', rim: 'Rim', bass808: '808', loop: '旋律 Loop', oneshot: 'One shot', midi: 'MIDI', fx: 'FX', drumloop: '鼓 Loop', other: '未分类' };
+const CAT_ORDER = ['kick', 'snare', 'clap', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop', 'oneshot', 'midi', 'fx', 'drumloop', 'other'];
 const RULES = [
   ['ohat', /\b(open ?hats?|open ?hh|ohh?|openhats?)\b/],
   ['hat', /\b(hi ?hats?|hihats?|hh|chh|closed ?hats?|hats?)\b/],
@@ -285,8 +288,10 @@ const LOOPY = /\b(loops?|melody|melodies|melodic|mel|samples? ?loops?)\b/;
 const DRUMLOOP = /\b(drums? ?loops?|drums?|breaks?|tops?|beat)\b/;
 const CATDIR = /^(\d+ )?(kicks?|snares?|claps?|hi ?hats?|hats?|open ?hats?|hh|oh|percs?|percussion|808 ?s?|bass|subs?|fx|sfx|loops?|melod(y|ies)|drums?|drum ?loops?|one ?shots?|samples?|midi|stems?|vox|vocals?|cymbals?|crash(es)?|rims?|toms?|snaps?|shakers?|risers?|impacts?)( \d+)?$/;
 const AUDIO_EXT = /\.(wav|mp3|aif|aiff|flac|ogg|m4a)$/i;
+const MIDI_EXT = /\.(mid|midi)$/i;
+const ANY_EXT = /\.(wav|mp3|aif|aiff|flac|ogg|m4a|mid|midi)$/i;
 function norm(s) {
-  return s.replace(AUDIO_EXT, '').toLowerCase()
+  return s.replace(ANY_EXT, '').toLowerCase()
     .replace(/[_\-.()\[\]{},+&~]+/g, ' ')
     .replace(/(\d)([a-z])/g, '$1 $2').replace(/([a-z])(\d)/g, '$1 $2')
     .replace(/\s+/g, ' ').trim();
@@ -301,7 +306,7 @@ function parseBpm(n, loopish) {
 const NOTE = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 const NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 function parseKey(fname, allowBare) {
-  const toks = fname.replace(AUDIO_EXT, '').replace(/[_\-.()\[\]{},+&~]+/g, ' ').split(/\s+/).filter(Boolean);
+  const toks = fname.replace(ANY_EXT, '').replace(/[_\-.()\[\]{},+&~]+/g, ' ').split(/\s+/).filter(Boolean);
   for (let i = 0; i < toks.length; i++) {
     const m = toks[i].match(/^([A-Ga-g])(#|♯|b|♭)?(m|min|minor|maj|major|mi)?$/);
     if (!m) continue;
@@ -328,6 +333,13 @@ function classifyPath(innerParts, packName) { // folders inside the pack + filen
   const folders = innerParts.slice(0, -1).map(norm).reverse();
   const bpm0 = parseBpm(n, false);
   const fileCat = matchCat(n);
+  if (MIDI_EXT.test(fname)) { // MIDI: melodic/chord files feed the Instrument track; drum MIDI is kept but not used there
+    const drum = !!fileCat && fileCat !== 'bass808' || folders.some(f => /\b(drums?|kicks?|snares?|hats?|percs?)\b/.test(f)) || /\bdrums?\b/.test(n);
+    return { cat: 'midi', bpm: parseBpm(n, true), key: parseKey(fname, false) || (innerParts.length > 1 ? parseKey(innerParts[innerParts.length - 2], false) : null), drumMidi: drum };
+  }
+  // melodic one-shots: non-drum sounds in a "One Shot(s)" folder (or with "one shot" in the name); the key in the name is the root note
+  const oneShotDir = folders.some(f => /\bone ?shots?\b|\boneshots?\b/.test(f)) || /\bone ?shots?\b/.test(n);
+  if (oneShotDir && (!fileCat || fileCat === 'fx') && !LOOPY.test(n) && parseBpm(n, false) == null) return { cat: 'oneshot', bpm: null, key: parseKey(fname, true) };
   // a loop does not have to say "loop": a BPM number plus a key in the name, a Loops / Melodies folder, or a pack called "… Loops" is enough
   const keyAndTempo = !fileCat && !!parseKey(fname, false) && parseBpm(n, true) != null;
   const loopDir = folders.some(f => LOOPY.test(f)) || (!fileCat && !folders.length && packName && LOOPY.test(norm(packName)));
@@ -361,7 +373,7 @@ function addPackSample(packName, s) {
   lib.samples.push(s);
 }
 function importFiles(items) { // items: [{file, path}]
-  const audio = items.filter(it => AUDIO_EXT.test(it.path) && !/(^|\/)\._/.test(it.path) && !/__MACOSX/.test(it.path));
+  const audio = items.filter(it => ANY_EXT.test(it.path) && !/(^|\/)\._/.test(it.path) && !/__MACOSX/.test(it.path));
   if (!audio.length) { toast('这个文件夹里没有找到音频文件（wav / mp3 / aif / flac）'); return; }
   const split = audio.map(it => ({ ...it, parts: it.path.split('/').filter(Boolean) }));
   // decide whether the chosen folder is a library (children = packs) or a single pack (children = categories)
@@ -462,6 +474,11 @@ const SYN = {
     const n = ctx.createBufferSource(); n.buffer = noise(ctx, 0.09, 9); const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 6000; bp.Q.value = 0.8;
     n.connect(bp).connect(envGain(ctx, 0.7, 0.008, 0.05)).connect(ctx.destination); n.start(0);
   }),
+  pluck: () => synth(1.2, ctx => {
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 261.63; const o2 = ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = 261.63 * 2;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(4200, 0); lp.frequency.exponentialRampToValueAtTime(700, 0.5);
+    const g = envGain(ctx, 0.5, 0, 1.0); o.connect(lp); o2.connect(lp); lp.connect(g).connect(ctx.destination); o.start(0); o2.start(0);
+  }),
   b808: () => synth(1.8, ctx => {
     const o = ctx.createOscillator(); o.frequency.setValueAtTime(130.8, 0); o.frequency.exponentialRampToValueAtTime(65.41, 0.04);
     const ws = ctx.createWaveShaper(); const curve = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; curve[i] = Math.tanh(2.2 * x); } ws.curve = curve;
@@ -493,6 +510,12 @@ function addBuiltin() {
   add('GB Rim.wav', 'rim', () => SYN.rim());
   add('GB Shaker.wav', 'perc', () => SYN.shaker());
   add('GB 808 C.wav', 'bass808', () => SYN.b808(), { key: { root: 0, mode: null } });
+  add('GB Pluck C.wav', 'oneshot', () => SYN.pluck(), { key: { root: 0, mode: null } });
+  { // Cm – Ab – Eb – Bb, half-note chords with a top-note melody, 4 bars
+    const notes = [];
+    [[60, 63, 67], [56, 60, 63], [55, 58, 63], [58, 62, 65]].forEach((ch, b) => { for (const h of [0, 2]) for (const p of ch) notes.push({ p, s: b * 4 + h, e: b * 4 + h + 1.9, v: 84 }); [0, 1.5, 3].forEach((o, i) => notes.push({ p: ch[2] + 12 - (i === 1 ? 2 : 0), s: b * 4 + o, e: b * 4 + o + 0.45, v: 96 })); });
+    add('GB Chords Cmin.mid', 'midi', null, { key: { root: 0, mode: 'min' }, midiData: { notes, bars: 4 } });
+  }
   for (const b of [80, 90, 110, 120, 130, 135, 140, 150, 160]) add(`GB Dark Keys ${b}bpm Cmin.wav`, 'loop', () => SYN.keys(b), { bpm: b, key: { root: 0, mode: 'min' } });
 }
 
@@ -549,8 +572,8 @@ for (const g of Object.values(GENRES)) {
   g.kp = kp.map(v => v / Math.max(1, g.list.length)); g.fillRate = fills / Math.max(1, g.list.length);
 }
 const LINES = [['k', 'kick', 'K', '--k'], ['s', 'back', 'S', '--s'], ['h', 'hat', 'H', '--h'], ['o', 'ohat', 'OH', '--o'], ['p', 'perc', 'P', '--p'], ['r', 'rim', 'RIM', '--r'], ['b', 'bass808', '808', '--b']];
-const SLOT_LABEL = { kick: 'Kick', back: 'Snare', hat: 'Hi-hat', ohat: 'Open hat', perc: 'Perc', rim: 'Rim', bass808: '808', loop: 'Loop', loop2: 'Loop 2', pattern: '鼓型' };
-const GAIN = { kick: 1, back: 0.8, hat: 0.42, ohat: 0.34, perc: 0.4, rim: 0.42, bass808: 0.78, loop: 0.62, loop2: 0.55 };
+const SLOT_LABEL = { kick: 'Kick', back: 'Snare', hat: 'Hi-hat', ohat: 'Open hat', perc: 'Perc', rim: 'Rim', bass808: '808', loop: 'Loop', loop2: 'Loop 2', inst: 'Instrument', pattern: '鼓型' };
+const GAIN = { kick: 1, back: 0.8, hat: 0.42, ohat: 0.34, perc: 0.4, rim: 0.42, bass808: 0.78, loop: 0.62, loop2: 0.55, inst: 0.5 };
 const VARY = 0.35;
 function slice(evs, from, to, shift) { return (evs || []).filter(([q]) => q >= from && q < to).map(([q, v]) => [+(q - from + shift).toFixed(3), v]); }
 function tileTo(evs, srcLen, len) { const out = []; for (let o = 0; o < len; o += srcLen) for (const [q, v] of evs || []) if (q + o < len) out.push([q + o, v]); return out; }
@@ -670,7 +693,7 @@ const SONG_FORMS = {
 };
 const INTRO_OPTS = { random: '随机', melody: '旋律先进（没有鼓）', drums: '鼓先进（没有旋律和 808）', straight: '直接进（全部一起）' };
 const SEC_COLOR = { Intro: '#6fc3d9', Hook: '#f2a93b', Verse: '#7ed39a', Bridge: '#b48ce8', Outro: '#8a93a0' };
-function sectionTracks(name, intro, hasLoop) { const t = sectionTracks0(name, intro, hasLoop); return t.includes('loop') ? t.concat('loop2') : t; } // Loop 2 plays wherever the main loop plays
+function sectionTracks(name, intro, hasLoop) { const t = sectionTracks0(name, intro, hasLoop); return t.includes('loop') ? t.concat('loop2', 'inst') : t; } // Loop 2 plays wherever the main loop plays
 function sectionTracks0(name, intro, hasLoop) {
   const all = ['kick', 'back', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop'];
   const minus = (...x) => all.filter(s => !x.includes(s));
@@ -738,8 +761,9 @@ function pickSlot(slot, pl, rng, anchor, genre, exclude) {
   if (exclude && cands.length > 1) cands = cands.filter(s => s !== exclude);
   return pick(cands, rng);
 }
-const SLOTS = ['kick', 'back', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop', 'loop2'];
+const SLOTS = ['kick', 'back', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop', 'loop2', 'inst'];
 const LOOP_SLOTS = ['loop', 'loop2'];
+const RANGE_SLOTS = ['loop', 'loop2', 'inst'];
 function makeDemo(params, seed, base) {
   const rng = mulberry32(seed);
   const pl = pools(params);
@@ -750,8 +774,9 @@ function makeDemo(params, seed, base) {
   if (params.mode === 'pack') { const packs = [...new Set(pl.kick.map(s => s.pack))]; if (packs.length) anchor = pick(packs, rng); }
   d.slots = d.slots || {};
   const hadLoop2 = !!d.slots.loop2;
-  for (const sl of SLOTS) if (sl !== 'loop2' && (!d.locked.has(sl) || !d.slots[sl])) d.slots[sl] = pickSlot(sl, pl, rng, anchor, params.genre);
+  for (const sl of SLOTS) if (sl !== 'loop2' && sl !== 'inst' && (!d.locked.has(sl) || !d.slots[sl])) d.slots[sl] = pickSlot(sl, pl, rng, anchor, params.genre);
   if (!d.locked.has('loop2')) d.slots.loop2 = hadLoop2 ? pickLoop2(d, rng) : null;
+  if (d.slots.inst && !d.locked.has('inst')) { d.instMidi = pickInstMidi(d, rng) || d.instMidi; d.slots.inst = pickOneShot(d, rng) || d.slots.inst; }
   const introBars = params.intro && params.bars >= 8 && d.slots.loop ? 2 : 0;
   if (!d.locked.has('pattern') || !d.groove || d.groove.len !== (params.bars - introBars) * 16) { const src = pick(g.list, rng); d.groove = makeGroove(g, src, params.bars - introBars, rng); }
   const has = k => d.groove.ev[k] && d.groove.ev[k].length;
@@ -840,7 +865,7 @@ function buildEvents(d) {
   if (!isSong(d)) {
     total = d.bars; const intro = d.introBars || 0;
     for (const h of hits) { const pos = h.q + intro * 16; if (pos >= total * 16) continue; if (total >= 8 && dropEnd8(h, pos)) continue; push(h, pos); }
-    ranges = LOOP_SLOTS.map(ls => [0, total * bar, ls]);
+    ranges = RANGE_SLOTS.map(ls => [0, total * bar, ls]);
   } else {
     const secs = d.song.secs, patLen = gr.len; let start = 0; ranges = [];
     secs.forEach((sec, i) => {
@@ -852,7 +877,7 @@ function buildEvents(d) {
         if (toHook && p >= len - 4 && h.ln !== 's') continue; // one beat of air before the hook (snare fill stays)
         push(h, start * 16 + p);
       }
-      for (const ls of LOOP_SLOTS) if (on.has(ls)) ranges.push([start * bar, (start + sec.bars) * bar, ls]); // the loop restarts at every section, so each section lands on bar 1 of the melody
+      for (const ls of RANGE_SLOTS) if (on.has(ls)) ranges.push([start * bar, (start + sec.bars) * bar, ls]); // the loop restarts at every section, so each section lands on bar 1 of the melody
       start += sec.bars;
     });
     total = start;
@@ -899,6 +924,122 @@ function stretched(s, B, speed) {
   return stretchCache.get(k);
 }
 // gather buffers and all timed events (drums + loop segments) for one demo
+// ---------- Instrument track: a MIDI / chord file from the library played with a melodic one-shot (no auto-transpose; layered on the loop)
+function readVar(v, i) { let x = 0, b; do { b = v[i++]; x = (x << 7) | (b & 127); } while (b & 128 && i < v.length); return [x, i]; }
+function parseMidi(ab) {
+  const v = new Uint8Array(ab), dv = new DataView(ab);
+  if (String.fromCharCode(...v.slice(0, 4)) !== 'MThd') throw new Error('不是 MIDI 文件');
+  const hl = dv.getUint32(4), ntr = dv.getUint16(10); let ppq = dv.getUint16(12); if (ppq & 0x8000) ppq = 480;
+  let i = 8 + hl; const notes = [];
+  for (let tr = 0; tr < ntr && i < v.length - 8; tr++) {
+    if (String.fromCharCode(...v.slice(i, i + 4)) !== 'MTrk') break;
+    const len = dv.getUint32(i + 4); let j = i + 8; const end = j + len; i = end;
+    let tick = 0, rs = 0; const open = new Map();
+    while (j < end) {
+      let dt; [dt, j] = readVar(v, j); tick += dt;
+      let st = v[j]; if (st & 0x80) j++; else st = rs;
+      if (st === 0xff) { j++; let l; [l, j] = readVar(v, j); j += l; continue; }
+      if (st === 0xf0 || st === 0xf7) { let l; [l, j] = readVar(v, j); j += l; continue; }
+      rs = st; const type = st & 0xf0, ch = st & 15;
+      if (type === 0xc0 || type === 0xd0) { j += 1; continue; }
+      const a = v[j], b = v[j + 1]; j += 2;
+      if (ch === 9) continue; // GM drum channel
+      const k = ch * 128 + a;
+      if (type === 0x90 && b > 0) { if (!open.has(k)) open.set(k, []); open.get(k).push([tick, b]); }
+      else if (type === 0x80 || (type === 0x90 && b === 0)) { const q = open.get(k); if (q && q.length) { const [t0, vel] = q.shift(); notes.push({ p: a, s: t0 / ppq, e: Math.max(t0 + 1, tick) / ppq, v: vel }); } }
+    }
+    for (const [k, q] of open) for (const [t0, vel] of q) notes.push({ p: k % 128, s: t0 / ppq, e: tick / ppq, v: vel });
+  }
+  notes.sort((x, y) => x.s - y.s || x.p - y.p);
+  const first = notes.length ? Math.floor(notes[0].s / 4) * 4 : 0; // drop empty bars before the first note
+  for (const n of notes) { n.s -= first; n.e -= first; }
+  const lastBeat = notes.reduce((m, n) => Math.max(m, n.e - 0.01), 0);
+  const bars = [1, 2, 4, 8, 16, 32].find(b => b * 4 >= lastBeat) || Math.ceil(lastBeat / 4);
+  return { notes, bars };
+}
+const midiCache = new Map();
+function getMidi(s) {
+  if (!s) return Promise.resolve(null);
+  if (s.midiData) return Promise.resolve(s.midiData);
+  if (!midiCache.has(s.id)) midiCache.set(s.id, s.file.arrayBuffer().then(parseMidi).catch(() => { s.bad = true; return null; }));
+  return midiCache.get(s.id);
+}
+// root note of the one-shot (from its name, else C); the MIDI is centred on it by octaves so the sample plays near its own pitch
+function instRoot(d) {
+  const k = d.slots.inst && d.slots.inst.key, base = 60 + (k ? k.root : 0);
+  return base + 12 * (d.instOct || 0) - 12 * ((d.instSet && d.instSet.octave) || 0);
+}
+async function fitInstOctave(d) {
+  const md = await getMidi(d.instMidi); if (!md || !md.notes.length) { d.instOct = 0; return; }
+  const ps = md.notes.map(n => n.p).sort((a, b) => a - b), med = ps[ps.length >> 1], k = d.slots.inst && d.slots.inst.key, base = 60 + (k ? k.root : 0);
+  d.instOct = Math.round((med - base) / 12); // play the clip's middle note close to the sample's own pitch
+}
+const instPool = () => enabledSamples().filter(s => s.cat === 'midi' && !s.drumMidi);
+function pickInstMidi(d, rng, exclude) {
+  const k = demoKey(d), all = instPool().filter(s => s !== exclude);
+  const same = k ? all.filter(s => s.key && s.key.root === k.root && (!s.key.mode || !k.mode || s.key.mode === k.mode)) : [];
+  const c = same.length ? same : all;
+  return c.length ? pick(c, rng || Math.random) : null;
+}
+function pickOneShot(d, rng, exclude) {
+  const all = enabledSamples().filter(s => s.cat === 'oneshot' && s !== exclude);
+  return all.length ? pick(all, rng || Math.random) : null;
+}
+async function addInstrument(d) {
+  d.instMidi = d.instMidi || pickInstMidi(d);
+  d.slots.inst = d.slots.inst || pickOneShot(d);
+  if (!d.instMidi || !d.slots.inst) {
+    toast(!d.instMidi ? '勾选的包里没有找到旋律 / 和弦 MIDI 文件（.mid）' : '勾选的包里没有 One Shot 文件夹里的旋律音色');
+    if (!d.slots.inst || !d.instMidi) { const m = d.instMidi, o = d.slots.inst; d.slots.inst = null; d.instMidi = null; if (m || o) openInstSettings(d, m, o); }
+    return;
+  }
+  await fitInstOctave(d); refreshDemo(d);
+}
+async function previewMidi(m, shot) {
+  const md = await getMidi(m); if (!md || !md.notes.length) { toast('这个 MIDI 读不出音符'); return; }
+  const ctx = ac(); if (previewSample.src) try { previewSample.src.stop(); } catch (e) {}
+  const B = shot ? await getBuffer(shot) : null, beat = 60 / (P.bpm || 120), t0 = ctx.currentTime + 0.05, out = ctx.createGain(); out.gain.value = 0.5; out.connect(ctx.destination);
+  const ps = md.notes.map(n => n.p).sort((a, b) => a - b), base = 60 + (shot && shot.key ? shot.key.root : 0), root = base + 12 * Math.round((ps[ps.length >> 1] - base) / 12);
+  for (const n of md.notes) {
+    if (n.s > 16) break;
+    const t = t0 + n.s * beat, du = Math.max(0.05, (n.e - n.s) * beat), g = ctx.createGain();
+    g.gain.setValueAtTime(0.6 * n.v / 127, t); g.gain.setValueAtTime(0.6 * n.v / 127, t + du - 0.04); g.gain.linearRampToValueAtTime(0, t + du);
+    let src; if (B) { src = ctx.createBufferSource(); src.buffer = B.buffer; src.playbackRate.value = Math.pow(2, (n.p - root) / 12); g.gain.value *= B.norm; }
+    else { src = ctx.createOscillator(); src.type = 'triangle'; src.frequency.value = 440 * Math.pow(2, (n.p - 69) / 12); }
+    src.connect(g).connect(out); src.start(t); src.stop(t + du + 0.02);
+  }
+  previewSample.src = { stop: () => out.disconnect() };
+}
+function openInstSettings(d, pendMidi, pendShot) {
+  closePicker();
+  const st = d.instSet = d.instSet || { transpose: 0, octave: 0 };
+  let m = pendMidi || d.instMidi, o = pendShot || d.slots.inst;
+  const nm = s => s ? s.pack + ' / ' + (s.path ? s.path.split('/').slice(-1)[0] : s.name) : '还没选';
+  const mLab = el('span', {}, nm(m)), oLab = el('span', {}, nm(o));
+  const k = demoKey(d);
+  const mInfo = el('span', { class: 'hint' }); const drawInfo = () => { mInfo.textContent = m && m.key ? `MIDI 调性 ${keyText(m.key)}${k ? (m.key.root === k.root ? ' · 和 loop 同调' : ` · loop 是 ${keyText(k)}，不会自动移调，可以用下面的「移调」`) : ''}` : 'MIDI 文件名里没有调性'; };
+  drawInfo();
+  const pickBtn = (label, cats, onPick) => { const b = el('button', { class: 'small' }, label); b.addEventListener('click', () => openPicker(d, cats, s => { onPick(s); openInstSettings(d, m, o); })); return b; };
+  const tr = el('input', { type: 'number', min: '-12', max: '12', step: '1', value: String(st.transpose), style: 'width:70px' });
+  const oc = el('select', {}, [-2, -1, 0, 1, 2].map(x => el('option', { value: String(x), selected: x === st.octave }, x === 0 ? '自动' : (x > 0 ? '+' : '') + x + ' 八度')));
+  const ok = el('button', { class: 'primary', disabled: !(m && o) }, '应用');
+  ok.addEventListener('click', async () => { st.transpose = Math.max(-12, Math.min(12, Math.round(+tr.value || 0))); st.octave = +oc.value; d.instMidi = m; d.slots.inst = o; closePicker(); await fitInstOctave(d); refreshDemo(d); });
+  const prev = el('button', { class: 'small', disabled: !m }, '▶ 试听 MIDI'); prev.addEventListener('click', () => previewMidi(m, o));
+  const close = el('button', { class: 'small', 'aria-label': '关闭' }, '✕'); close.addEventListener('click', closePicker);
+  const rowEl = (lab, ...kids) => el('div', { class: 'inst-row' }, el('span', { class: 'slot-lab' }, lab), el('div', { class: 'inst-val' }, ...kids));
+  const box = el('div', { class: 'picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Instrument 设置', style: 'width:min(600px,100%)' },
+    el('div', { class: 'pick-head' }, el('strong', {}, 'Instrument 设置'), el('span', { class: 'spacer' }), close),
+    el('div', { class: 'hint' }, '用一个 MIDI / 和弦文件，配上 One Shot 文件夹里的旋律音色来演奏，叠在 loop 上面。'),
+    rowEl('MIDI', mLab, el('span', { class: 'spacer' }), pickBtn('选择 MIDI', 'instMidi', s => { m = s; }), prev),
+    el('div', { style: 'margin:-4px 0 0 88px' }, mInfo),
+    rowEl('音色', oLab, el('span', { class: 'spacer' }), pickBtn('选择音色', 'inst', s => { o = s; })),
+    rowEl('移调', tr, el('span', { class: 'hint' }, '半音（−12 到 +12）'), el('span', { style: 'width:16px' }), el('span', { class: 'hint' }, '八度'), oc),
+    el('div', { class: 'pick-foot' }, el('span', { class: 'hint' }, '音色的音高按文件名里的调性算，没写就当作 C。'), el('span', { class: 'spacer' }), ok));
+  const ov = el('div', { class: 'pick-ov', id: 'pickOv' }, box);
+  ov.addEventListener('pointerdown', e => { if (e.target === ov) closePicker(); });
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape') closePicker(); e.stopPropagation(); });
+  document.body.append(ov); ok.focus();
+}
 const loopMode = (d, ls) => (d.loopMode && d.loopMode[ls]) || P.loopModeDef || 'keep';
 function loopSpeed(d, L) {
   const lb = L.bpm, m = loopMatch(L, d.bpm) || { eff: lb ? [lb, lb * 2, lb / 2].reduce((a, b) => Math.abs(Math.log(b / d.bpm)) < Math.abs(Math.log(a / d.bpm)) ? b : a) : d.bpm };
@@ -958,31 +1099,43 @@ async function prepare(d) {
     if (ls === 'loop') d.loopInfo = { bars: loopBars, stretched: Math.abs(speed - 1) >= 0.004 ? speed : 1 };
     for (const [a, b, rs] of ranges) if (rs === ls) for (let t = a; t < b - 0.001; t += seg) events.push({ slot: ls, t, v: 1, dur: Math.min(seg, lenSec, b - t), rate: vari ? speed : undefined });
   }
+  if (bufs.inst && d.instMidi) {
+    const md = await getMidi(d.instMidi);
+    if (md && md.notes.length) {
+      const beat = bar / 4, clip = md.bars * bar, root = instRoot(d), shift = (d.instSet && d.instSet.transpose) || 0;
+      for (const [a, b, rs] of ranges) if (rs === 'inst') for (let o = a; o < b - 0.001; o += clip) for (const n of md.notes) {
+        const t = o + n.s * beat; if (t >= b - 0.001 || n.s * beat >= clip) continue;
+        const rate = Math.pow(2, (n.p + shift - root) / 12);
+        events.push({ slot: 'inst', t, v: 0.3 + 0.7 * n.v / 127, dur: Math.max(0.03, Math.min((n.e - n.s) * beat, b - t)), rate });
+      }
+    }
+  }
   events.sort((a, b) => a.t - b.t);
   return { events, dur, bufs, rate808 };
 }
 // drum-machine voices: every pad is monophonic (a new hit cuts the last one with a short fade); hats share a choke group
-const VOICE_GROUP = { kick: 'kick', back: 'back', hat: 'hats', ohat: 'hats', perc: 'perc', rim: 'rim', bass808: 'bass808', loop: 'loop', loop2: 'loop2' };
+const VOICE_GROUP = { kick: 'kick', back: 'back', hat: 'hats', ohat: 'hats', perc: 'perc', rim: 'rim', bass808: 'bass808', loop: 'loop', loop2: 'loop2', inst: null }; // null = polyphonic (chords)
 function voiceEngine(ctx, bus, prep) {
   const voices = {};
   return function trigger(e, at, off = 0) {
     const B = prep.bufs[e.slot]; if (!B || !bus[e.slot]) return;
     const t = at != null ? at : e.t;
-    const grp = VOICE_GROUP[e.slot], prev = voices[grp];
+    const grp = VOICE_GROUP[e.slot], prev = grp ? voices[grp] : null;
     if (prev && prev.end > t) { prev.g.gain.setTargetAtTime(0, Math.max(prev.t, t - 0.004), 0.0015); try { prev.src.stop(t + 0.03); } catch (x) {} }
     const src = ctx.createBufferSource(); src.buffer = B.buffer;
     if (e.slot === 'bass808') src.playbackRate.value = prep.rate808; else if (e.rate) src.playbackRate.value = e.rate;
     const g = ctx.createGain(), lvl = e.v * GAIN[e.slot] * B.norm;
     g.gain.setValueAtTime(lvl, t);
     const ed = e.dur ? e.dur - off : 0, len = (ed || B.buffer.duration / src.playbackRate.value - off);
-    if (ed) { g.gain.setValueAtTime(lvl, Math.max(t, t + ed - 0.01)); g.gain.linearRampToValueAtTime(0, t + ed); }
+    const rel = e.slot === 'inst' ? 0.05 : 0.01;
+    if (ed) { g.gain.setValueAtTime(lvl, Math.max(t, t + ed - rel)); g.gain.linearRampToValueAtTime(0, t + ed); }
     src.connect(g).connect(bus[e.slot]);
     src.start(t, off * src.playbackRate.value); if (ed) src.stop(t + ed + 0.01);
-    voices[grp] = { src, g, t, end: t + len };
+    if (grp) voices[grp] = { src, g, t, end: t + len };
   };
 }
 // ---------- mixer
-const MIX_SLOTS = ['kick', 'back', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop', 'loop2'];
+const MIX_SLOTS = ['kick', 'back', 'hat', 'ohat', 'perc', 'rim', 'bass808', 'loop', 'loop2', 'inst'];
 const mixDefault = () => ({ vol: 0, pan: 0, mute: false, solo: false, low: 0, mid: 0, high: 0, lowcut: false });
 const MIX = Object.assign(Object.fromEntries(MIX_SLOTS.map(k => [k, mixDefault()])), { master: { vol: 0 } }, store.get('gb.mix', {}));
 for (const k of MIX_SLOTS) MIX[k] = Object.assign(mixDefault(), MIX[k]);
@@ -1183,6 +1336,7 @@ function notes(d) {
   const g = GENRES[d.genre], k = demoKey(d);
   const lines = [`${baseName(d)}`, `曲风: ${g.name}  BPM: ${d.bpm}  调性: ${k ? keyText(k) : '未知'}  长度: ${isSong(d) ? `全曲 ${songBars(d)} 小节` : d.bars + ' 小节'}`, `鼓型来源: ${d.groove.src}（家族 ${d.groove.family}）  swing: ${Math.round((d.swing != null ? d.swing : d.groove.swing) * 100)}%  密度: ${d.density == null ? 50 : d.density}  力度: ${d.velAmt == null ? 100 : d.velAmt}%  随机种子: ${d.seed}`, '', '所用采样:'];
   for (const sl of SLOTS) { const s = d.slots[sl]; if (s) lines.push(`  ${SLOT_LABEL[sl].padEnd(8)} ${s.pack} / ${s.path || s.name}`); }
+  if (d.slots.inst && d.instMidi) lines.push(`  ${'MIDI'.padEnd(8)} ${d.instMidi.pack} / ${d.instMidi.path || d.instMidi.name}${d.instSet && d.instSet.transpose ? `（移调 ${d.instSet.transpose}）` : ''}`);
   if (isSong(d)) { let b = 1; lines.push('', `全曲结构 (${songBars(d)} 小节, ${fmtTime(songBars(d) * 240 / d.bpm)}):`); for (const x of d.song.secs) { lines.push(`  ${String(b).padStart(3)}–${String(b + x.bars - 1).padEnd(3)} ${x.name.padEnd(7)} ${x.on.filter(sl => d.slots[sl]).map(sl => SLOT_LABEL[sl]).join(', ')}`); b += x.bars; }  }
   return lines.join('\n');
 }
@@ -1244,7 +1398,7 @@ function renderLibrary() {
         for (const c of CAT_ORDER) {
           const list = p.samples.filter(s => s.cat === c); if (!list.length) continue;
           body.append(el('div', { class: 'cat-title' }, `${CAT_LABEL[c]} · ${list.length}`));
-          for (const s of list.slice(0, 60)) body.append(el('button', { class: 'sample', title: s.path || s.name, onclick: () => previewSample(s) }, (s.path ? s.path.split('/').slice(-1)[0] : s.name) + (s.bpm ? `  · ${s.bpmGuess ? '≈' : ''}${s.bpm}` : '') + (s.key ? `  · ${keyLabel(s.key)}` : '')));
+          for (const s of list.slice(0, 60)) body.append(el('button', { class: 'sample', title: s.path || s.name, onclick: () => s.cat === 'midi' ? previewMidi(s) : previewSample(s) }, (s.path ? s.path.split('/').slice(-1)[0] : s.name) + (s.bpm ? `  · ${s.bpmGuess ? '≈' : ''}${s.bpm}` : '') + (s.key ? `  · ${keyLabel(s.key)}` : '')));
           if (list.length > 60) body.append(el('div', { class: 'hint' }, `还有 ${list.length - 60} 个…`));
         }
       }
@@ -1434,7 +1588,7 @@ function arrangeView(d) {
     h.addEventListener('click', () => playDemo(d, songStart(d, i) * barSec));
     g.append(h);
   });
-  const colOf = Object.fromEntries(LINES.map(([, slot, , col]) => [slot, `var(${col})`])); colOf.loop = 'var(--accent)'; colOf.loop2 = '#d9b86f';
+  const colOf = Object.fromEntries(LINES.map(([, slot, , col]) => [slot, `var(${col})`])); colOf.loop = 'var(--accent)'; colOf.loop2 = '#d9b86f'; colOf.inst = '#e07b9b';
   for (const sl of SLOTS) {
     if (!d.slots[sl]) continue;
     const line = SLOT_LINE[sl];
@@ -1514,6 +1668,26 @@ function renderWork() {
   for (const sl of SLOTS) {
     const s = d.slots[sl];
     if (sl === 'loop' && s) { row('loop', loopName(d, 'loop'), (pl.loop || []).length > 1); continue; }
+    if (sl === 'inst') {
+      const nmOf = x => x ? (x.path ? x.path.split('/').slice(-1)[0] : x.name) : '—';
+      if (s && d.instMidi) {
+        const st = d.instSet || {}, tag = [st.transpose ? `移调 ${st.transpose > 0 ? '+' : ''}${st.transpose}` : '', st.octave ? `${st.octave > 0 ? '+' : ''}${st.octave} 八度` : ''].filter(Boolean).join(' · ');
+        const nb = el('button', { class: 'loopname', title: '点击打开 Instrument 设置' }, el('span', { class: 'pk' }, 'MIDI '), nmOf(d.instMidi), el('span', { class: 'pk' }, '  ·  音色 '), nmOf(s), el('span', { class: 'lm-tag' }, (tag || '原调') + ' ⚙'));
+        nb.addEventListener('click', () => openInstSettings(d));
+        const rm = el('button', { class: 'small' }, '移除'); rm.addEventListener('click', () => { d.slots.inst = null; d.instMidi = null; d.locked.delete('inst'); refreshDemo(d); });
+        const rM = el('button', { class: 'small', title: '随机换一个 MIDI（优先和 loop 同调）' }, '换 MIDI'); rM.addEventListener('click', async () => { d.instMidi = pickInstMidi(d, null, d.instMidi) || d.instMidi; await fitInstOctave(d); refreshDemo(d); });
+        const rO = el('button', { class: 'small', title: '随机换一个 One Shot 音色' }, '换音色'); rO.addEventListener('click', async () => { d.slots.inst = pickOneShot(d, null, s) || s; await fitInstOctave(d); refreshDemo(d); });
+        const lock = el('button', { class: 'small' + (d.locked.has('inst') ? ' on' : ''), 'aria-pressed': String(d.locked.has('inst')) }, d.locked.has('inst') ? '已锁定' : '锁定');
+        lock.addEventListener('click', () => { d.locked.has('inst') ? d.locked.delete('inst') : d.locked.add('inst'); renderWork(); });
+        slots.append(el('span', { class: 'slot-lab' }, 'Instrument'), el('span', { class: 'slot-name' }, nb), el('span', { class: 'slot-btns' }, rM, rO, rm, lock));
+      } else {
+        const add = el('button', { class: 'small', title: '随机挑一个 MIDI（优先和 loop 同调）和一个 One Shot 音色' }, '+ 随机加一个'); add.addEventListener('click', () => addInstrument(d));
+        const set = el('button', { class: 'small' }, '自己选…'); set.addEventListener('click', () => openInstSettings(d));
+        const n1 = instPool().length, n2 = enabledSamples().filter(x => x.cat === 'oneshot').length;
+        slots.append(el('span', { class: 'slot-lab' }, 'Instrument'), el('span', { class: 'slot-name' }, el('span', { class: 'pk' }, `默认不加载，用 MIDI + One Shot 演奏 · 库里有 ${n1} 个 MIDI、${n2} 个 One Shot`)), el('span', { class: 'slot-btns' }, add, set));
+      }
+      continue;
+    }
     if (sl === 'loop2') {
       if (s) row('loop2', loopName(d, 'loop2'), true);
       else {
@@ -1578,20 +1752,21 @@ function loopName(d, sl) {
   b.addEventListener('click', () => openLoopSettings(d, sl));
   return b;
 }
-const PICK_CATS = { kick: ['kick'], back: ['snare', 'clap'], hat: ['hat'], ohat: ['ohat'], perc: ['perc'], rim: ['rim', 'perc'], bass808: ['bass808'], loop: ['loop'], loop2: ['loop'] };
-function openPicker(d, sl) {
+const PICK_CATS = { inst: ['oneshot'], instMidi: ['midi'], kick: ['kick'], back: ['snare', 'clap'], hat: ['hat'], ohat: ['ohat'], perc: ['perc'], rim: ['rim', 'perc'], bass808: ['bass808'], loop: ['loop'], loop2: ['loop'] };
+function openPicker(d, sl, onPick) {
   closePicker();
-  const cats = PICK_CATS[sl], isLoop = LOOP_SLOTS.includes(sl), cur = d.slots[sl];
+  const cats = PICK_CATS[sl], isLoop = LOOP_SLOTS.includes(sl), isMidi = sl === 'instMidi', cur = isMidi ? d.instMidi : d.slots[sl];
   let chosen = null, rows = [];
   const q = el('input', { type: 'search', placeholder: '搜索文件名或包名', 'aria-label': '搜索' });
   const scope = el('select', { 'aria-label': '范围' }, el('option', { value: 'cat' }, `只看 ${cats.map(c => CAT_LABEL[c]).join(' / ')}`), el('option', { value: 'all' }, '全部类别'));
   const onlyOn = el('input', { type: 'checkbox', checked: true });
   const list = el('div', { class: 'pick-list', role: 'listbox', 'aria-label': '采样' });
   const use = el('button', { class: 'primary', disabled: true }, '用这个');
-  const fileIn = el('input', { type: 'file', accept: 'audio/*,.wav,.aif,.aiff,.mp3,.flac', hidden: true });
+  const fileIn = el('input', { type: 'file', accept: isMidi ? '.mid,.midi,audio/midi' : 'audio/*,.wav,.aif,.aiff,.mp3,.flac', hidden: true });
   const fromPc = el('button', {}, '从电脑选文件…');
   const apply = s => {
     closePicker();
+    if (onPick) { onPick(s); return; }
     d.slots[sl] = s;
     const ln = SLOT_LINE[sl];
     if (ln && !(d.groove.ev[ln] || []).length) rerollLine(d, sl); else refreshDemo(d);
@@ -1601,20 +1776,21 @@ function openPicker(d, sl) {
     if (s.bpm) t.push((s.bpmGuess ? '≈' : '') + s.bpm + ' bpm');
     if (s.key) t.push(keyText(s.key));
     if (isLoop) { const m = loopMatch(s, d.bpm); t.push(m ? (m.d < 0.004 ? '速度对得上' : `拉伸 ${(m.d * 100).toFixed(1)}%`) : '速度差太多'); }
+    if (s.drumMidi) t.push('鼓 MIDI');
     if (s === cur) t.push('当前');
     return t.join(' · ');
   };
   const draw = () => {
     const on = new Set([...lib.packs.values()].filter(p => p.enabled).map(p => p.name));
     const term = q.value.trim().toLowerCase();
-    let c = lib.samples.filter(s => !s.bad && (scope.value === 'all' || cats.includes(s.cat)) && (!onlyOn.checked || on.has(s.pack) || s.pack === '单独导入'));
+    let c = lib.samples.filter(s => !s.bad && (isMidi ? s.cat === 'midi' : s.cat !== 'midi') && (scope.value === 'all' || cats.includes(s.cat)) && (!onlyOn.checked || on.has(s.pack) || s.pack === '单独导入'));
     if (term) c = c.filter(s => (s.pack + ' ' + (s.path || s.name)).toLowerCase().includes(term));
     if (isLoop) { const k = demoKey(d); const sc = s => (loopMatch(s, d.bpm) ? 0 : 2) + (k && s.key && s.key.root === k.root ? 0 : 1); c.sort((a, b) => sc(a) - sc(b)); }
     rows = c.slice(0, 400);
     list.replaceChildren(...rows.map((s, i) => {
       const r = el('button', { class: 'pick-row' + (s === chosen ? ' sel' : '') + (s === cur ? ' cur' : ''), role: 'option', 'aria-selected': String(s === chosen) },
         el('span', { class: 'pn' }, s.path ? s.path.split('/').slice(-1)[0] : s.name), el('span', { class: 'pp' }, `${s.pack} · ${CAT_LABEL[s.cat]}`), el('span', { class: 'pt' }, tags(s)));
-      r.addEventListener('click', () => { chosen = s; use.disabled = false; for (const x of list.children) { x.classList.remove('sel'); x.setAttribute('aria-selected', 'false'); } r.classList.add('sel'); r.setAttribute('aria-selected', 'true'); previewSample(s, true); });
+      r.addEventListener('click', () => { chosen = s; use.disabled = false; for (const x of list.children) { x.classList.remove('sel'); x.setAttribute('aria-selected', 'false'); } r.classList.add('sel'); r.setAttribute('aria-selected', 'true'); isMidi ? previewMidi(s, d.slots.inst) : previewSample(s, true); });
       r.addEventListener('dblclick', () => apply(s));
       return r;
     }));
@@ -1627,9 +1803,9 @@ function openPicker(d, sl) {
   fileIn.addEventListener('change', async () => {
     const f = fileIn.files[0]; if (!f) return;
     const c = classifyPath([f.name], '单独导入');
-    const cat = cats.includes(c.cat) ? c.cat : cats[0];
+    const cat = isMidi ? 'midi' : cats.includes(c.cat) ? c.cat : cats[0];
     const bpm = isLoop ? (c.bpm || parseBpm(norm(f.name), true)) : null;
-    addPackSample('单独导入', { file: f, path: '单独导入/' + f.name, name: f.name, cat, bpm, key: c.key || parseKey(f.name, cat === 'bass808') });
+    addPackSample('单独导入', { file: f, path: '单独导入/' + f.name, name: f.name, cat, bpm, key: c.key || parseKey(f.name, cat === 'bass808' || cat === 'oneshot') });
     lib.packs.get('单独导入').enabled = true;
     const s = lib.samples[lib.samples.length - 1];
     if (isLoop && !s.bpm) await guessLoopTempos();
@@ -1639,7 +1815,7 @@ function openPicker(d, sl) {
   });
   const close = el('button', { class: 'small', 'aria-label': '关闭' }, '✕'); close.addEventListener('click', closePicker);
   const box = el('div', { class: 'picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': '选择音色' },
-    el('div', { class: 'pick-head' }, el('strong', {}, `选择音色 · ${SLOT_LABEL[sl]}`), el('span', { class: 'spacer' }), close),
+    el('div', { class: 'pick-head' }, el('strong', {}, isMidi ? '选择 MIDI · Instrument' : `选择音色 · ${SLOT_LABEL[sl]}`), el('span', { class: 'spacer' }), close),
     el('div', { class: 'pick-ctl' }, q, scope, el('label', { class: 'check' }, onlyOn, ' 只看勾选的包')),
     list,
     el('div', { class: 'pick-foot' }, fromPc, fileIn, el('span', { class: 'hint' }, '单击试听，双击直接用'), el('span', { class: 'spacer' }), use));
@@ -1670,7 +1846,7 @@ function renderMixer() {
     box.append(r);
   };
   const cd = current();
-  for (const sl of MIX_SLOTS) if (sl !== 'loop2' || (cd && cd.slots.loop2)) strip(sl, SLOT_LABEL[sl]);
+  for (const sl of MIX_SLOTS) if ((sl !== 'loop2' && sl !== 'inst') || (cd && cd.slots[sl])) strip(sl, SLOT_LABEL[sl]);
   strip('master', 'Master');
   const eq = $('#eq'); eq.replaceChildren();
   const m = MIX[mixSel];
@@ -1744,5 +1920,5 @@ renderLibrary();
 renderMixer();
 generate();
 (async () => { try { if (window.claude && window.claude.use) dl = await window.claude.use('downloads'); } catch (e) { dl = null; } })();
-window.__gb = { openPicker, renderStems, P, setLen, setView, playDemo, songBars, isSong, notes, lib, demos: () => demos, MIX, current, setBpm, buildEvents, renderDemo, classifyPath, parseKey, importFiles, GENRES, GROOVES };
+window.__gb = { parseMidi, addInstrument, openInstSettings, openPicker, renderStems, P, setLen, setView, playDemo, songBars, isSong, notes, lib, demos: () => demos, MIX, current, setBpm, buildEvents, renderDemo, classifyPath, parseKey, importFiles, GENRES, GROOVES };
 </script>

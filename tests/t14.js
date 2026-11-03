@@ -17,7 +17,7 @@ const { chromium } = require('playwright'); const fs=require('fs'), path=require
  await page.click('.pick-foot button.primary'); await page.waitForTimeout(200);
  console.log('kick now', name, await page.evaluate(()=>window.__gb.current().slots.kick.name), 'overlay', await page.locator('#pickOv').count());
  // loop2 random add
- await page.locator('#ws .slot-btns button',{hasText:'+ 随机加一个'}).click(); await page.waitForTimeout(300);
+ await page.locator('#ws .slot-btns button',{hasText:'+ 随机加一个'}).first().click(); await page.waitForTimeout(300);
  console.log('loop2', await page.evaluate(()=>{const d=window.__gb.current(); return d.slots.loop2&&d.slots.loop2.name+' / loop '+d.slots.loop.name;}), 'toast', await page.textContent('#toast'));
  // loop2 from computer
  const labs2 = await page.locator('#ws .slot-lab').allTextContents();
