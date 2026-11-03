@@ -1,4 +1,11 @@
-<title>GenBeatz</title>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="用自己的采样库，生成下一段灵感。GenBeatz 本地 beat 工作台。">
+<title>GenBeatz — Beat Lab</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
@@ -178,138 +185,26 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-/* ---------- UI directions (round 3): based on d4nn9.com — near-black, white type, hairlines, JetBrains Mono + Bebas Neue ---------- */
-:root[data-ui] {
-  --bg: #030303; --panel: rgba(255,255,255,0.015); --panel-2: rgba(255,255,255,0.045); --line: rgba(255,255,255,0.1); --fg: #f2f2f2; --muted: #6b6b6b;
-  --accent: #ffffff; --accent-ink: #030303; --cell: rgba(255,255,255,0.06); --cell-beat: rgba(255,255,255,0.1);
-  --display: "Bebas Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --body: "JetBrains Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace;
-  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --live: #ffffff;
-}
-:root[data-ui="a"] { --k: #ffffff; --s: #d6d6d6; --h: #a3a3a3; --o: #7d7d7d; --p: #bcbcbc; --r: #8f8f8f; --b: #e8e8e8; }
-:root[data-ui] body { font-size: 13px; letter-spacing: 0.01em; }
-:root[data-ui] body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .07; mix-blend-mode: screen;
-  background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,.5) 0, rgba(255,255,255,.5) 1px, transparent 1px, transparent 8px); }
-:root[data-ui] .panel, :root[data-ui] .transport, :root[data-ui] .pack, :root[data-ui] .picker { border-radius: 0; border-color: var(--line); }
-:root[data-ui] .picker { background: #070707; }
-:root[data-ui] .transport { background: transparent; border-width: 0 0 1px; padding: 18px 0 20px; margin-bottom: 20px; }
-:root[data-ui] .logo { font-family: var(--display); font-size: 44px; font-weight: 400; letter-spacing: -0.01em; line-height: .9; }
-:root[data-ui] .logo span { color: var(--fg); opacity: .3; }
-:root[data-ui] .logo span::before { content: "/"; opacity: .6; margin: 0 .08em; }
-:root[data-ui] .tgroup, :root[data-ui] .klab, :root[data-ui] .hint, :root[data-ui] .summary, :root[data-ui] .meta { letter-spacing: .14em; }
-:root[data-ui] .slots { grid-template-columns: 96px minmax(0, 1fr) auto; }
-:root[data-ui] .slot-lab { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-:root[data-ui] .tgroup { font-size: 10px; text-transform: uppercase; color: var(--muted); }
-:root[data-ui] .panel h2 { font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .25em; color: var(--muted); }
-:root[data-ui] .panel h2::before { content: attr(data-n) " / "; color: var(--fg); }
-:root[data-ui] button, :root[data-ui] .btn, :root[data-ui] input[type=number], :root[data-ui] input[type=search], :root[data-ui] select { border-radius: 0; background: transparent; border-color: rgba(255,255,255,.16); font-family: var(--mono); }
-:root[data-ui] select option { background: #0b0b0b; }
-:root[data-ui] button:hover { border-color: rgba(255,255,255,.55); }
-:root[data-ui] button.small { font-size: 11px; letter-spacing: .04em; }
-:root[data-ui] button.primary, :root[data-ui] .seg button[aria-pressed="true"], :root[data-ui] .tabs button[aria-selected="true"] { background: #fff; color: #030303; border-color: #fff; }
-:root[data-ui] button.big { font-family: var(--display); font-size: 24px; font-weight: 400; letter-spacing: .08em; padding: 6px 26px; }
-:root[data-ui] button.play { background: transparent; color: var(--live); border-color: var(--live); }
-:root[data-ui] #work.playing button.play, :root[data-ui] .playing #playBtn { background: var(--live); color: #030303; }
-:root[data-ui] input.bpm { font-family: var(--display); font-weight: 400; font-size: 34px; color: #fff; background: transparent; border-color: rgba(255,255,255,.16); border-radius: 0; width: 96px; }
-:root[data-ui] .tabs button { font-family: var(--display); font-size: 18px; font-weight: 400; letter-spacing: .04em; min-width: 46px; padding: 2px 10px; }
-:root[data-ui] .num { font-family: var(--display); font-size: 34px; font-weight: 400; color: var(--fg); line-height: 1; }
-:root[data-ui] .title { font-family: var(--display); font-size: 24px; font-weight: 400; letter-spacing: .03em; }
-:root[data-ui] .card-head { border-left: 1px solid; border-image: linear-gradient(to bottom, #fff, transparent) 1; padding-left: 12px; }
-:root[data-ui] .chip { border-radius: 0; background: transparent; border: 1px solid var(--line); }
-:root[data-ui] .dial { background: conic-gradient(from 225deg, var(--fg) 0 calc(var(--p) * 270deg), rgba(255,255,255,.12) calc(var(--p) * 270deg) 270deg, transparent 270deg); }
-:root[data-ui] .dial::after { background: #030303; border-color: rgba(255,255,255,.14); }
-:root[data-ui] .steps .c, :root[data-ui] .arr-grid .blk { background: var(--cell); border-radius: 0; }
-:root[data-ui] .steps .c.beat { background: var(--cell-beat); }
-:root[data-ui] .steps .c.on, :root[data-ui] .steps .c.soft { background: var(--col); }
-:root[data-ui] .arr-grid .blk.on { background: var(--col); opacity: .8; }
-:root[data-ui] .steps.edit .c.ph { background: color-mix(in srgb, var(--live) 34%, transparent); }
-:root[data-ui] .steps.edit .c.on.ph, :root[data-ui] .steps.edit .c.roll.ph { box-shadow: 0 0 10px var(--live); filter: none; outline: 1px solid var(--live); outline-offset: -1px; }
-:root[data-ui] .arr-ph { background: var(--live); box-shadow: 0 0 8px var(--live); }
-:root[data-ui] .progress { background: rgba(255,255,255,.08); border-radius: 0; }
-:root[data-ui] .progress > i { background: var(--live); }
-:root[data-ui] .meter { background: rgba(255,255,255,.07); border-radius: 0; }
-:root[data-ui] .meter i { background: var(--fg); }
-:root[data-ui] .mixer .ms.on.m { background: transparent; border-color: #fff; color: #fff; text-decoration: line-through; }
-:root[data-ui] .mixer .ms.on.s { background: var(--live); border-color: var(--live); color: #030303; }
-:root[data-ui] .arr-grid .sec { border-radius: 0; background: rgba(255,255,255,.04); color: var(--fg); border-left: 1px solid var(--sc); }
-:root[data-ui] .arr-grid .sec { --sc: #fff; }
-:root[data-ui] .lm-tag { color: var(--fg); opacity: .55; }
-:root[data-ui] .pick-row.sel { background: rgba(255,255,255,.1); }
-:root[data-ui] .modes button[aria-pressed="true"] { border-color: #fff; color: #fff; }
-:root[data-ui] .drop { border-radius: 0; border-color: rgba(255,255,255,.2); }
-:root[data-ui] .toast { border-radius: 0; background: #0b0b0b; font-family: var(--mono); }
-:root[data-ui] input[type=checkbox] { accent-color: #fff; }
-:root[data-ui] .transport { align-items: flex-end; gap: 12px 22px; }
-:root[data-ui] .transport .sep { background: rgba(255,255,255,.1); }
-:root[data-ui] .transport #genBtn { min-width: 140px; }
-:root[data-ui] button.play { width: 56px; height: 46px; font-size: 18px; }
-:root[data-ui] .grid { gap: 0; border: 1px solid var(--line); }
-:root[data-ui] .grid > .panel { border-width: 0; background: transparent; padding: 20px; }
-:root[data-ui] .grid > .panel + .panel { border-left: 1px solid var(--line); }
-@media (max-width: 1180px) { :root[data-ui] .grid > .mixer { border-left: 0; border-top: 1px solid var(--line); } }
-@media (max-width: 760px) { :root[data-ui] .grid > .panel + .panel { border-left: 0; border-top: 1px solid var(--line); } :root[data-ui] .transport { gap: 10px 14px; } }
-:root[data-ui] .panel h2 { margin: 0 0 4px; text-transform: uppercase; }
-:root[data-ui] .exportbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 6px; }
-:root[data-ui] .exportbar .xlab { font-size: 10px; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); }
-:root[data-ui] .slot-btns { gap: 0; }
-:root[data-ui] .slot-btns button { border-color: transparent; color: #9a9a9a; padding: 3px 8px; }
-:root[data-ui] .slot-btns button + button { border-left: 1px solid rgba(255,255,255,.08); }
-:root[data-ui] .slot-btns button:hover:not(:disabled) { color: #fff; border-color: rgba(255,255,255,.3); }
-:root[data-ui] .slot-btns button.on { color: #030303; background: #fff; border-color: #fff; }
-:root[data-ui] .slots > * { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-:root[data-ui] .gridbar button.on { background: #fff; color: #030303; border-color: #fff; }
-:root[data-ui] .pack { background: transparent; }
-:root[data-ui] .pack-name { font-weight: 500; }
-:root[data-ui] .mixer .strip.sel { background: rgba(255,255,255,.04); border-color: var(--line); border-radius: 0; }
-:root[data-ui] .mixer input[type=range], :root[data-ui] .eq input[type=range] { accent-color: #fff; }
-:root[data-ui] .knobs { gap: 26px; }
-
-/* v18 spacing pass: tighter tracking for mixed Chinese/English text, consistent gaps between buttons */
-:root[data-ui] body { letter-spacing: 0; }
-:root[data-ui] .tgroup { letter-spacing: .1em; gap: 6px; }
-:root[data-ui] .klab, :root[data-ui] .meta, :root[data-ui] .summary { letter-spacing: .06em; }
-:root[data-ui] .hint, :root[data-ui] .soon { letter-spacing: .02em; line-height: 1.6; }
-:root[data-ui] .panel h2 { letter-spacing: .18em; margin-bottom: 8px; }
-:root[data-ui] .slot-lab { letter-spacing: .08em; }
-:root[data-ui] .exportbar .xlab { letter-spacing: .16em; }
-:root[data-ui] button, :root[data-ui] .btn { padding: 6px 14px; line-height: 1.4; }
-:root[data-ui] button.small { padding: 4px 10px; letter-spacing: .02em; }
-:root[data-ui] .row { gap: 10px; }
-:root[data-ui] .transport { gap: 14px 26px; }
-:root[data-ui] .seg { gap: 6px; }
-:root[data-ui] .ws-top { gap: 12px; }
-:root[data-ui] .tabs { gap: 6px; }
-:root[data-ui] .modes { gap: 6px; }
-:root[data-ui] .card-head { gap: 12px; }
-:root[data-ui] .knobs { gap: 28px; padding: 4px 0 2px; }
-:root[data-ui] .gridbar { gap: 8px; margin-bottom: 10px; }
-:root[data-ui] .gridbar .gstat { margin-left: 6px; }
-:root[data-ui] .slots { gap: 6px 14px; }
-:root[data-ui] .slots > * { padding: 5px 0; }
-:root[data-ui] .slot-btns { gap: 6px; }
-:root[data-ui] .slot-btns button { padding: 3px 10px; border-color: rgba(255,255,255,.1); }
-:root[data-ui] .slot-btns button + button { border-left: 1px solid rgba(255,255,255,.1); }
-:root[data-ui] .exportbar { gap: 12px 18px; padding-top: 16px; }
-:root[data-ui] .exportbar .check { margin-right: 2px; }
-:root[data-ui] .mixer .strip { gap: 8px; padding: 7px 8px; }
-:root[data-ui] .eq { gap: 8px 10px; }
-:root[data-ui] .counts { gap: 4px; margin-top: 6px; }
-:root[data-ui] .chip { padding: 1px 6px; }
-:root[data-ui] .mixer .ms { padding: 0; line-height: 20px; }
-:root[data-ui] .tabs button { padding: 2px 10px; }
-:root[data-ui] button.play, :root[data-ui] .expand { padding: 0; }
-:root[data-ui] .expand { padding: 0 4px; }
-:root[data-ui] .sample { padding: 3px 0; }
-:root[data-ui] .pack-head { gap: 10px; padding: 10px 12px; }
-:root[data-ui] .packs { gap: 8px; }
-:root[data-ui] .pick-head, :root[data-ui] .pick-ctl, :root[data-ui] .pick-foot { gap: 10px; }
 </style>
 
-<script>document.documentElement.setAttribute('data-ui', 'a');</script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<a class="skip" href="#work">跳到工作台</a>
+<header class="masthead">
+  <a class="wordmark" href="./index.html" aria-label="GenBeatz 首页">GEN<span>BEATZ</span><sup>®</sup></a>
+  <span class="edition">INDEPENDENT SOUND / BEAT LAB</span>
+  <div class="head-actions"><button id="artToggle" aria-expanded="true" aria-controls="artStage">视觉 / ON</button><button id="libraryToggle" aria-expanded="true" aria-controls="libraryPanel">采样库</button><button id="mixToggle" aria-expanded="false" aria-controls="mixerPanel">混音台 ↗</button></div>
+</header>
+<section class="art-stage" id="artStage" aria-label="节拍粒子视觉">
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="art-copy"><span class="eyebrow">YOUR SAMPLES. NEW POSSIBILITIES.</span><h1>MAKE IT<br><em>HIT DIFFERENT.</em></h1><p>你的采样，下一段灵感。</p></div>
+  <div class="art-meta"><span class="art-label">01 / PARTICLE FIELD</span><span>移动指针，扰动粒子场</span></div>
+  <div class="art-controls"><button id="petalToggle" aria-pressed="false">樱花 / OFF</button><button id="motionToggle" aria-pressed="true">动效 / ON</button></div>
+</section>
 <div class="app">
   <header class="transport" aria-label="项目控制">
-    <div class="logo" style="align-self:center">Gen<span>Beatz</span></div>
+    <div class="session-label"><span class="status-dot"></span> SESSION<br><small>生成设置</small></div>
     <span class="sep"></span>
     <label class="tgroup">BPM<input id="bpmInput" class="bpm" type="number" min="60" max="200" value="140" title="点击输入，滚轮或上下拖动调整"></label>
     <label class="tgroup">曲风<select id="genreSel"></select></label>
@@ -318,14 +213,14 @@ input[type=number] { width: 80px; font-family: var(--mono); }
     <label class="tgroup">数量<input id="countInput" type="number" min="1" max="20" value="6"></label>
     <label class="tgroup">鼓的搭配<select id="modeSel"><option value="pack">同包优先</option><option value="mix">跨包混搭</option></select></label>
     <span class="spacer"></span>
-    <button id="genBtn" class="primary big">生成</button>
+    <button id="genBtn" class="primary big">生成 BEATS ↗</button>
     <button id="playBtn" class="primary play playbtn" title="播放 / 停止（空格）" aria-label="播放">▶</button>
   </header>
-  <div id="genInfo" class="hint" style="margin:-8px 0 12px"></div>
+  <div class="session-status"><span id="genInfo" class="hint" role="status"></span><span>LOCAL AUDIO · 音频不上传</span></div>
 
-  <main class="grid">
-    <section class="panel stack" aria-label="采样库">
-      <h2 data-n="01">Library · 采样库</h2>
+  <main class="grid" id="studioGrid">
+    <section class="panel stack library" id="libraryPanel" aria-label="采样库">
+      <h2 data-n="01">SOUND LIBRARY <span>采样库</span></h2>
       <div class="row">
         <label class="btn" for="dirInput">选择采样库文件夹</label>
         <input id="dirInput" class="vh" type="file" webkitdirectory directory multiple>
@@ -355,8 +250,8 @@ input[type=number] { width: 80px; font-family: var(--mono); }
       </div>
     </section>
 
-    <section class="panel mixer" aria-label="混音台">
-      <h2 data-n="03">Mixer · 混音台</h2>
+    <section class="panel mixer" id="mixerPanel" aria-label="混音台" hidden>
+      <div class="mixer-heading"><h2 data-n="03">MIXER <span>混音台</span></h2><button id="mixClose" class="small" aria-label="收起混音台">收起 ↓</button></div>
       <div id="strips"></div>
       <div id="eq" class="eq"></div>
       <div class="row" style="margin-top:10px"><label class="check"><input id="tuneChk" type="checkbox"> 808 跟随 loop 调性</label></div>
@@ -2050,3 +1945,7 @@ generate();
 (async () => { try { if (window.claude && window.claude.use) dl = await window.claude.use('downloads'); } catch (e) { dl = null; } })();
 window.__gb = { parseMidi, addInstrument, openInstSettings, openPicker, renderStems, P, setLen, setView, playDemo, songBars, isSong, notes, lib, demos: () => demos, MIX, current, setBpm, buildEvents, renderDemo, classifyPath, parseKey, importFiles, GENRES, GROOVES };
 </script>
+
+<script src="studio.js"></script>
+</body>
+</html>
