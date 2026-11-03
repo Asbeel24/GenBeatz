@@ -63,6 +63,7 @@ window.createBeatSculpture = host => {
       lowerQuality() { if (!lowQuality) { lowQuality = true; renderer.setPixelRatio(1); } },
       render(time, beat, drift, burst, pointer) {
         if (lost) { host.dataset.renderer = 'fallback'; return false; }
+        host.dataset.artFrame = String((Number(host.dataset.artFrame) || 0) + 1);
         hover += ((pointer?.active ? 1 : 0) - hover) * .075;
         const cursorU = ((pointer?.x || 0) + .5) * Math.PI * 2;
         for (let i = 0; i <= cols; i++) {

@@ -197,6 +197,24 @@ input[type=number] { width: 80px; font-family: var(--mono); }
   <div class="head-actions"><button id="artToggle" aria-expanded="true" aria-controls="artStage">视觉 / ON</button><button id="libraryToggle" aria-expanded="true" aria-controls="libraryPanel">采样库</button><button id="mixToggle" aria-expanded="false" aria-controls="mixerPanel">混音台 ↗</button></div>
 </header>
 <section class="art-stage" id="artStage" aria-label="节拍动态雕塑">
+  <div class="signal-backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid slice">
+      <g class="signal-contours">
+        <path d="M408 276C476 222 463 157 545 128S666 83 711 24"/>
+        <path d="M451 292C508 233 502 178 577 147S710 104 752 37"/>
+        <path d="M502 305C551 250 548 198 615 167S757 128 795 55"/>
+        <path d="M559 315C599 266 595 218 657 190S805 153 842 77"/>
+        <path d="M620 318C654 282 646 241 704 214S854 180 891 102"/>
+        <path d="M686 318C715 296 704 266 758 239S904 212 944 132"/>
+      </g>
+      <g class="signal-trace"><path d="M380 219C510 178 592 234 708 174S871 102 1018 134"/></g>
+      <g class="signal-nodes">
+        <circle cx="545" cy="128" r="2.4"/><circle cx="615" cy="167" r="1.8"/>
+        <circle cx="708" cy="174" r="2.8"/><circle cx="805" cy="153" r="1.8"/>
+        <circle cx="891" cy="102" r="2.2"/><circle cx="944" cy="132" r="1.5"/>
+      </g>
+    </svg>
+  </div>
   <canvas id="particles" aria-hidden="true"></canvas>
   <div class="art-copy"><span class="eyebrow">YOUR SAMPLES. NEW POSSIBILITIES.</span><h1>MAKE IT<br><em>HIT DIFFERENT.</em></h1><p>你的采样，下一段灵感。</p></div>
   <div class="art-meta"><span class="art-label">01 / TENSION FIELD</span><span>移动拉扯 · 按下冲击</span></div>
