@@ -1,0 +1,33 @@
+const { chromium } = require('playwright'); const fs=require('fs'), path=require('path');
+(async()=>{ const b=await chromium.launch({args:['--autoplay-policy=no-user-gesture-required']}); const page=await b.newPage({viewport:{width:1440,height:900}});
+ const errs=[]; page.on('pageerror',e=>errs.push(e.message)); page.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+ await page.route('https://cdnjs.cloudflare.com/**', r => { const u=r.request().url(); r.fulfill({ body: fs.readFileSync(u.includes('jszip')?'../node_modules/jszip/dist/jszip.min.js':'../node_modules/lamejs/lame.min.js'), contentType:'application/javascript' }); });
+ await page.route('https://fonts.googleapis.com/**', r=>r.fulfill({body:'',contentType:'text/css'}));
+ await page.goto('file://'+path.resolve('../app/index.html')); await page.waitForTimeout(400);
+ await page.setInputFiles('#dirInput','Library'); await page.waitForTimeout(300); await page.click('#genBtn'); await page.waitForTimeout(100);
+ const ev=(k)=>page.evaluate(k=>JSON.stringify(window.__gb.current().groove.ev[k].filter(([q])=>q<16)),k);
+ await page.click('#playBtn'); await page.waitForTimeout(300);
+ const cell=(ln,c)=>page.locator(`.steps .c[data-ln="${ln}"][data-c="${c}"]`);
+ console.log('kick bar1 before', await ev('k'));
+ await cell('k',5).click(); await page.waitForTimeout(150);
+ console.log('after toggle 5', await ev('k'), 'title', await page.textContent('#ws .title'));
+ await cell('k',5).click(); await page.waitForTimeout(150); console.log('after toggle again', await ev('k'));
+ // velocity drag on kick 0
+ const bb=await cell('k',0).boundingBox(); await page.mouse.move(bb.x+4,bb.y+8); await page.mouse.down(); await page.mouse.move(bb.x+4,bb.y+60,{steps:6}); await page.mouse.up(); await page.waitForTimeout(150);
+ console.log('vel drag', await ev('k'));
+ await cell('h',3).click({button:'right'}); await page.waitForTimeout(100); await cell('h',3).click({button:'right'}); await page.waitForTimeout(100);
+ console.log('hat roll', await page.evaluate(()=>JSON.stringify(window.__gb.current().groove.ev.h.filter(([q])=>q>=3&&q<4))));
+ await page.keyboard.press('Control+z'); await page.waitForTimeout(100);
+ console.log('undo', await page.evaluate(()=>JSON.stringify(window.__gb.current().groove.ev.h.filter(([q])=>q>=3&&q<4))));
+ await page.locator('.gridbar button',{hasText:'5–8 小节'}).click(); await page.waitForTimeout(100);
+ console.log('page2 first cell', await page.locator('.steps .c[data-ln="k"]').first().getAttribute('data-c'));
+ await page.locator('.gridbar button',{hasText:'复制到'}).click(); await page.waitForTimeout(100);
+ console.log('copied equal', await page.evaluate(()=>{const e=window.__gb.current().groove.ev.k; const a=e.filter(([q])=>q<64).map(([q,v])=>q+':'+v).join(), b=e.filter(([q])=>q>=64).map(([q,v])=>(q-64)+':'+v).join(); return a===b;}));
+ // density bake
+ await page.evaluate(()=>{window.__gb.current().density=20;}); await page.locator('.gridbar button',{hasText:'1–4 小节'}).click(); 
+ const n0=await page.evaluate(()=>window.__gb.buildEvents(window.__gb.current()).ev.length);
+ await cell('s',9).click(); await page.waitForTimeout(150);
+ console.log('bake', n0, await page.evaluate(()=>window.__gb.buildEvents(window.__gb.current()).ev.length), 'knob', await page.locator('.kval').nth(1).textContent());
+ console.log('playing', await page.textContent('#playBtn'), 'prog', await page.locator('#ws .progress i').evaluate(e=>e.style.width));
+ await page.screenshot({path:'shot5.png'});
+ console.log('errors', errs); await b.close(); })();

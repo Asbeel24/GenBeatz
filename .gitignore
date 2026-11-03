@@ -1,0 +1,6 @@
+node_modules/
+tests/Library/
+tests/L2/
+tests/*.wav
+tests/*.png
+.DS_Store

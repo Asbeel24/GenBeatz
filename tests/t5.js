@@ -1,0 +1,30 @@
+const { chromium } = require('playwright'); const fs=require('fs'), path=require('path');
+(async()=>{ const b=await chromium.launch({args:['--autoplay-policy=no-user-gesture-required']}); const page=await b.newPage({viewport:{width:1440,height:900}});
+ const errs=[]; page.on('pageerror',e=>errs.push(e.message)); page.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+ await page.route('https://cdnjs.cloudflare.com/**', r => { const u=r.request().url(); r.fulfill({ body: fs.readFileSync(u.includes('jszip')?'../node_modules/jszip/dist/jszip.min.js':'../node_modules/lamejs/lame.min.js'), contentType:'application/javascript' }); });
+ await page.route('https://fonts.googleapis.com/**', r=>r.fulfill({body:'',contentType:'text/css'}));
+ await page.goto('file://'+path.resolve('../app/index.html')); await page.waitForTimeout(400);
+ await page.setInputFiles('#dirInput','Library'); await page.waitForTimeout(300); await page.click('#genBtn');
+ const count=()=>page.evaluate(()=>{const d=window.__gb.current(); return window.__gb.buildEvents(d).ev.length;});
+ console.log('events base', await count());
+ await page.click('#playBtn'); await page.waitForTimeout(600);
+ const knobs=page.locator('.knob'); console.log('knobs', await knobs.count(), await page.locator('.kval').allTextContents());
+ // drag density down
+ const kb=await knobs.nth(1).boundingBox(); await page.mouse.move(kb.x+35,kb.y+20); await page.mouse.down(); await page.mouse.move(kb.x+35,kb.y+80,{steps:5}); await page.mouse.up(); await page.waitForTimeout(400);
+ console.log('after density down', await page.locator('.kval').allTextContents(), 'events', await count());
+ await knobs.nth(1).dblclick(); await knobs.nth(1).hover(); for(let i=0;i<10;i++) await page.mouse.wheel(0,-100); await page.waitForTimeout(400);
+ console.log('after density up', await page.locator('.kval').allTextContents(), 'events', await count());
+ await knobs.nth(0).hover(); for(let i=0;i<8;i++) await page.mouse.wheel(0,-100); await page.waitForTimeout(300);
+ console.log('swing', await page.locator('.kval').nth(0).textContent());
+ await knobs.nth(0).dblclick(); await page.waitForTimeout(200); console.log('swing reset', await page.locator('.kval').nth(0).textContent());
+ // per-track reroll
+ const before=await page.evaluate(()=>JSON.stringify(window.__gb.current().groove.ev.h));
+ await page.locator('#ws .slot-btns button',{hasText:'随机节奏'}).nth(2).click(); await page.waitForTimeout(300);
+ const after=await page.evaluate(()=>JSON.stringify(window.__gb.current().groove.ev.h));
+ console.log('hat changed', before!==after, 'title', await page.textContent('#ws .title'), 'playing', await page.textContent('#playBtn'));
+ const k1=await page.evaluate(()=>JSON.stringify(window.__gb.current().groove.ev.b));
+ await page.locator('#ws .slot-btns button',{hasText:'随机节奏'}).nth(3).click(); await page.waitForTimeout(300);
+ console.log('808 changed', k1!==await page.evaluate(()=>JSON.stringify(window.__gb.current().groove.ev.b)));
+ await page.waitForTimeout(800); console.log('prog', await page.locator('#ws .progress i').evaluate(e=>e.style.width));
+ await page.screenshot({path:'shot3.png'});
+ console.log('errors', errs); await b.close(); })();
