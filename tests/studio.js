@@ -40,8 +40,6 @@ const JSZip = require('jszip');
     await page.locator('#libraryToggle').click();
     assert.equal(await page.locator('#libraryPanel').isVisible(), false);
     await page.locator('#libraryToggle').click();
-    await page.locator('#petalToggle').click();
-    assert.equal(await page.locator('#petalToggle').getAttribute('aria-pressed'), 'true');
     await page.locator('#motionToggle').click();
     assert.equal(await page.locator('#motionToggle').getAttribute('aria-pressed'), 'false');
     await page.locator('#artToggle').click();

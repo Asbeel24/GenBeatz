@@ -22,15 +22,15 @@ Batch beat-demo generator that works from your own sample library. Browser-based
 
 - `app/index.html`：应用结构和音频引擎（JSZip 3.10.1、lamejs 1.2.1 从 cdnjs 加载）。
 - `app/studio.css`：工作台视觉样式和响应式布局。
-- `app/studio.js`：粒子场、樱花层和面板开关；不修改音频合成逻辑。
+- `app/studio.js`：粒子场和面板开关；不修改音频合成逻辑。
 - `tools/midi/`：MIDI 清洗和鼓型提取脚本（`clean.py` → `build.py`），清洗报告见 `CLEANING_REPORT.md`。
 - `tests/`：Playwright 测试。`python3 tests/mklib.py tests` 生成假采样库，`cd tests && python3 mkextra.py`，然后 `npm install && cd tests && node t9.js` 等。测试会把 cdnjs 请求转到本地 `node_modules`。
 
 ## Beat Lab 界面
 
-参考 Portal 的粒子与青绿 / 紫色关系、SoniX 的音乐制作品牌气质，重新组织为采样库和主工作台。右上角可收起视觉区或采样库；混音台按需展开。Pattern / Arrange 继续共享同一条 demo。
+参考 Portal 的粒子空间感、SoniX 的音乐制作品牌气质，重新组织为采样库和主工作台。右上角可收起视觉区或采样库；混音台按需展开。Pattern / Arrange 继续共享同一条 demo。
 
-粒子视觉随播放节拍脉动，指针可轻微扰动；樱花层可单独开启。动效可暂停，默认尊重系统减少动态效果设置，离屏或切到后台暂停动画。视觉交互不会改变音频。
+粒子视觉随播放节拍脉动，指针可轻微扰动。深色背景配合青绿定向光、局部高光和前后层次，不使用紫色背光或樱花层。动效可暂停，默认尊重系统减少动态效果设置，离屏或切到后台暂停动画。视觉交互不会改变音频。
 
 直接打开 `app/index.html`（保留同目录 CSS / JS 文件），或运行 `npm start` 后访问 `http://127.0.0.1:4173/app/`。
 
