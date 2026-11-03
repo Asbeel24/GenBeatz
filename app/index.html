@@ -124,7 +124,8 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 .steps.edit .c.ph { background: rgba(242,169,59,.38); }
 .steps.edit .c.on.ph, .steps.edit .c.roll.ph { opacity: 1 !important; filter: brightness(1.45); box-shadow: 0 0 8px var(--col); }
 .arr-wrap { position: relative; overflow-x: auto; }
-.arr-grid { display: grid; gap: 3px 0; min-width: 640px; }
+.arr-inner { position: relative; min-width: 640px; } /* the playhead measures against the full grid width, also when it scrolls */
+.arr-grid { display: grid; gap: 3px 0; }
 .arr-grid .lab { font-family: var(--mono); font-size: 10px; color: var(--muted); align-self: center; }
 .arr-grid .sec { all: unset; cursor: pointer; font-family: var(--mono); font-size: 11px; padding: 4px 6px; margin-right: 3px; border-radius: 4px; background: color-mix(in srgb, var(--sc) 22%, transparent); color: var(--sc); border-left: 3px solid var(--sc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .arr-grid .sec:hover { background: color-mix(in srgb, var(--sc) 35%, transparent); }
@@ -1340,7 +1341,12 @@ function stepGrid(d) {
 // playhead on the step grid: the current column lights up, lit cells flash; the grid page follows playback unless the user picked a page
 function playhead(st, d, sec) {
   let step = Math.floor(sec / (60 / d.bpm / 4) + 1e-6);
-  const ah = $('#ws .arr-ph'); if (ah) ah.style.setProperty('--x', String(sec / st.dur));
+  const ah = $('#ws .arr-ph');
+  if (ah) {
+    ah.style.setProperty('--x', String(sec / st.dur));
+    const w = ah.closest('.arr-wrap'), x = ah.offsetLeft; // keep the playhead in view when the arrangement is wider than the panel
+    if (w && w.scrollWidth > w.clientWidth && (x < w.scrollLeft + 74 || x > w.scrollLeft + w.clientWidth - 24)) w.scrollLeft = Math.max(0, x - 90);
+  }
   if (isSong(d)) { let b0 = 0, s2 = -1; for (const x of d.song.secs) { if (step < (b0 + x.bars) * 16) { s2 = (step - b0 * 16) % d.groove.len; break; } b0 += x.bars; } step = s2; }
   else step -= (d.introBars || 0) * 16;
   let grid = $('#ws .steps');
@@ -1393,7 +1399,7 @@ function arrangeView(d) {
       g.append(b);
     });
   }
-  return el('div', { class: 'arr' }, bar, el('div', { class: 'arr-wrap' }, g, el('div', { class: 'arr-ph' })));
+  return el('div', { class: 'arr' }, bar, el('div', { class: 'arr-wrap' }, el('div', { class: 'arr-inner' }, g, el('div', { class: 'arr-ph' }))));
 }
 // rotary knob: drag up/down, mouse wheel, arrow keys; double-click resets
 function knob(o) {
