@@ -16,7 +16,8 @@
     "test:art": "node tests/art.js",
     "test:desktop": "node tests/desktop.js",
     "desktop:dev": "tauri dev",
-    "desktop:build": "tauri build"
+    "desktop:build": "tauri build",
+    "tauri": "tauri"
   },
   "name": "genbeatz",
   "private": true,
