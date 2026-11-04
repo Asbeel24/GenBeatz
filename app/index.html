@@ -1,7 +1,13 @@
-<title>GenBeatz</title>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="用自己的采样库，生成下一段灵感。GenBeatz 本地 beat 工作台。">
+<title>GenBeatz — Beat Lab</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="vendor/fonts.css">
 <style>
 /* Layout: hardware-console look — sample library rack on the left, pattern workbench on the right; single dark theme by choice */
 :root {
@@ -16,7 +22,7 @@
   --accent-ink: #1b1306;
   --k: #f2a93b; --s: #e86a5a; --h: #6fc3d9; --o: #4f9fb8; --p: #b48ce8; --r: #e0a3c8; --b: #7ed39a;
   --warn: #e8c35a;
-  --display: "Chakra Petch", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --display: "PingFang SC", "Microsoft YaHei", sans-serif;
   --body: "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -178,138 +184,45 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-/* ---------- UI directions (round 3): based on d4nn9.com — near-black, white type, hairlines, JetBrains Mono + Bebas Neue ---------- */
-:root[data-ui] {
-  --bg: #030303; --panel: rgba(255,255,255,0.015); --panel-2: rgba(255,255,255,0.045); --line: rgba(255,255,255,0.1); --fg: #f2f2f2; --muted: #6b6b6b;
-  --accent: #ffffff; --accent-ink: #030303; --cell: rgba(255,255,255,0.06); --cell-beat: rgba(255,255,255,0.1);
-  --display: "Bebas Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --body: "JetBrains Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace;
-  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --live: #ffffff;
-}
-:root[data-ui="a"] { --k: #ffffff; --s: #d6d6d6; --h: #a3a3a3; --o: #7d7d7d; --p: #bcbcbc; --r: #8f8f8f; --b: #e8e8e8; }
-:root[data-ui] body { font-size: 13px; letter-spacing: 0.01em; }
-:root[data-ui] body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .07; mix-blend-mode: screen;
-  background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,.5) 0, rgba(255,255,255,.5) 1px, transparent 1px, transparent 8px); }
-:root[data-ui] .panel, :root[data-ui] .transport, :root[data-ui] .pack, :root[data-ui] .picker { border-radius: 0; border-color: var(--line); }
-:root[data-ui] .picker { background: #070707; }
-:root[data-ui] .transport { background: transparent; border-width: 0 0 1px; padding: 18px 0 20px; margin-bottom: 20px; }
-:root[data-ui] .logo { font-family: var(--display); font-size: 44px; font-weight: 400; letter-spacing: -0.01em; line-height: .9; }
-:root[data-ui] .logo span { color: var(--fg); opacity: .3; }
-:root[data-ui] .logo span::before { content: "/"; opacity: .6; margin: 0 .08em; }
-:root[data-ui] .tgroup, :root[data-ui] .klab, :root[data-ui] .hint, :root[data-ui] .summary, :root[data-ui] .meta { letter-spacing: .14em; }
-:root[data-ui] .slots { grid-template-columns: 96px minmax(0, 1fr) auto; }
-:root[data-ui] .slot-lab { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-:root[data-ui] .tgroup { font-size: 10px; text-transform: uppercase; color: var(--muted); }
-:root[data-ui] .panel h2 { font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .25em; color: var(--muted); }
-:root[data-ui] .panel h2::before { content: attr(data-n) " / "; color: var(--fg); }
-:root[data-ui] button, :root[data-ui] .btn, :root[data-ui] input[type=number], :root[data-ui] input[type=search], :root[data-ui] select { border-radius: 0; background: transparent; border-color: rgba(255,255,255,.16); font-family: var(--mono); }
-:root[data-ui] select option { background: #0b0b0b; }
-:root[data-ui] button:hover { border-color: rgba(255,255,255,.55); }
-:root[data-ui] button.small { font-size: 11px; letter-spacing: .04em; }
-:root[data-ui] button.primary, :root[data-ui] .seg button[aria-pressed="true"], :root[data-ui] .tabs button[aria-selected="true"] { background: #fff; color: #030303; border-color: #fff; }
-:root[data-ui] button.big { font-family: var(--display); font-size: 24px; font-weight: 400; letter-spacing: .08em; padding: 6px 26px; }
-:root[data-ui] button.play { background: transparent; color: var(--live); border-color: var(--live); }
-:root[data-ui] #work.playing button.play, :root[data-ui] .playing #playBtn { background: var(--live); color: #030303; }
-:root[data-ui] input.bpm { font-family: var(--display); font-weight: 400; font-size: 34px; color: #fff; background: transparent; border-color: rgba(255,255,255,.16); border-radius: 0; width: 96px; }
-:root[data-ui] .tabs button { font-family: var(--display); font-size: 18px; font-weight: 400; letter-spacing: .04em; min-width: 46px; padding: 2px 10px; }
-:root[data-ui] .num { font-family: var(--display); font-size: 34px; font-weight: 400; color: var(--fg); line-height: 1; }
-:root[data-ui] .title { font-family: var(--display); font-size: 24px; font-weight: 400; letter-spacing: .03em; }
-:root[data-ui] .card-head { border-left: 1px solid; border-image: linear-gradient(to bottom, #fff, transparent) 1; padding-left: 12px; }
-:root[data-ui] .chip { border-radius: 0; background: transparent; border: 1px solid var(--line); }
-:root[data-ui] .dial { background: conic-gradient(from 225deg, var(--fg) 0 calc(var(--p) * 270deg), rgba(255,255,255,.12) calc(var(--p) * 270deg) 270deg, transparent 270deg); }
-:root[data-ui] .dial::after { background: #030303; border-color: rgba(255,255,255,.14); }
-:root[data-ui] .steps .c, :root[data-ui] .arr-grid .blk { background: var(--cell); border-radius: 0; }
-:root[data-ui] .steps .c.beat { background: var(--cell-beat); }
-:root[data-ui] .steps .c.on, :root[data-ui] .steps .c.soft { background: var(--col); }
-:root[data-ui] .arr-grid .blk.on { background: var(--col); opacity: .8; }
-:root[data-ui] .steps.edit .c.ph { background: color-mix(in srgb, var(--live) 34%, transparent); }
-:root[data-ui] .steps.edit .c.on.ph, :root[data-ui] .steps.edit .c.roll.ph { box-shadow: 0 0 10px var(--live); filter: none; outline: 1px solid var(--live); outline-offset: -1px; }
-:root[data-ui] .arr-ph { background: var(--live); box-shadow: 0 0 8px var(--live); }
-:root[data-ui] .progress { background: rgba(255,255,255,.08); border-radius: 0; }
-:root[data-ui] .progress > i { background: var(--live); }
-:root[data-ui] .meter { background: rgba(255,255,255,.07); border-radius: 0; }
-:root[data-ui] .meter i { background: var(--fg); }
-:root[data-ui] .mixer .ms.on.m { background: transparent; border-color: #fff; color: #fff; text-decoration: line-through; }
-:root[data-ui] .mixer .ms.on.s { background: var(--live); border-color: var(--live); color: #030303; }
-:root[data-ui] .arr-grid .sec { border-radius: 0; background: rgba(255,255,255,.04); color: var(--fg); border-left: 1px solid var(--sc); }
-:root[data-ui] .arr-grid .sec { --sc: #fff; }
-:root[data-ui] .lm-tag { color: var(--fg); opacity: .55; }
-:root[data-ui] .pick-row.sel { background: rgba(255,255,255,.1); }
-:root[data-ui] .modes button[aria-pressed="true"] { border-color: #fff; color: #fff; }
-:root[data-ui] .drop { border-radius: 0; border-color: rgba(255,255,255,.2); }
-:root[data-ui] .toast { border-radius: 0; background: #0b0b0b; font-family: var(--mono); }
-:root[data-ui] input[type=checkbox] { accent-color: #fff; }
-:root[data-ui] .transport { align-items: flex-end; gap: 12px 22px; }
-:root[data-ui] .transport .sep { background: rgba(255,255,255,.1); }
-:root[data-ui] .transport #genBtn { min-width: 140px; }
-:root[data-ui] button.play { width: 56px; height: 46px; font-size: 18px; }
-:root[data-ui] .grid { gap: 0; border: 1px solid var(--line); }
-:root[data-ui] .grid > .panel { border-width: 0; background: transparent; padding: 20px; }
-:root[data-ui] .grid > .panel + .panel { border-left: 1px solid var(--line); }
-@media (max-width: 1180px) { :root[data-ui] .grid > .mixer { border-left: 0; border-top: 1px solid var(--line); } }
-@media (max-width: 760px) { :root[data-ui] .grid > .panel + .panel { border-left: 0; border-top: 1px solid var(--line); } :root[data-ui] .transport { gap: 10px 14px; } }
-:root[data-ui] .panel h2 { margin: 0 0 4px; text-transform: uppercase; }
-:root[data-ui] .exportbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 6px; }
-:root[data-ui] .exportbar .xlab { font-size: 10px; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); }
-:root[data-ui] .slot-btns { gap: 0; }
-:root[data-ui] .slot-btns button { border-color: transparent; color: #9a9a9a; padding: 3px 8px; }
-:root[data-ui] .slot-btns button + button { border-left: 1px solid rgba(255,255,255,.08); }
-:root[data-ui] .slot-btns button:hover:not(:disabled) { color: #fff; border-color: rgba(255,255,255,.3); }
-:root[data-ui] .slot-btns button.on { color: #030303; background: #fff; border-color: #fff; }
-:root[data-ui] .slots > * { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-:root[data-ui] .gridbar button.on { background: #fff; color: #030303; border-color: #fff; }
-:root[data-ui] .pack { background: transparent; }
-:root[data-ui] .pack-name { font-weight: 500; }
-:root[data-ui] .mixer .strip.sel { background: rgba(255,255,255,.04); border-color: var(--line); border-radius: 0; }
-:root[data-ui] .mixer input[type=range], :root[data-ui] .eq input[type=range] { accent-color: #fff; }
-:root[data-ui] .knobs { gap: 26px; }
-
-/* v18 spacing pass: tighter tracking for mixed Chinese/English text, consistent gaps between buttons */
-:root[data-ui] body { letter-spacing: 0; }
-:root[data-ui] .tgroup { letter-spacing: .1em; gap: 6px; }
-:root[data-ui] .klab, :root[data-ui] .meta, :root[data-ui] .summary { letter-spacing: .06em; }
-:root[data-ui] .hint, :root[data-ui] .soon { letter-spacing: .02em; line-height: 1.6; }
-:root[data-ui] .panel h2 { letter-spacing: .18em; margin-bottom: 8px; }
-:root[data-ui] .slot-lab { letter-spacing: .08em; }
-:root[data-ui] .exportbar .xlab { letter-spacing: .16em; }
-:root[data-ui] button, :root[data-ui] .btn { padding: 6px 14px; line-height: 1.4; }
-:root[data-ui] button.small { padding: 4px 10px; letter-spacing: .02em; }
-:root[data-ui] .row { gap: 10px; }
-:root[data-ui] .transport { gap: 14px 26px; }
-:root[data-ui] .seg { gap: 6px; }
-:root[data-ui] .ws-top { gap: 12px; }
-:root[data-ui] .tabs { gap: 6px; }
-:root[data-ui] .modes { gap: 6px; }
-:root[data-ui] .card-head { gap: 12px; }
-:root[data-ui] .knobs { gap: 28px; padding: 4px 0 2px; }
-:root[data-ui] .gridbar { gap: 8px; margin-bottom: 10px; }
-:root[data-ui] .gridbar .gstat { margin-left: 6px; }
-:root[data-ui] .slots { gap: 6px 14px; }
-:root[data-ui] .slots > * { padding: 5px 0; }
-:root[data-ui] .slot-btns { gap: 6px; }
-:root[data-ui] .slot-btns button { padding: 3px 10px; border-color: rgba(255,255,255,.1); }
-:root[data-ui] .slot-btns button + button { border-left: 1px solid rgba(255,255,255,.1); }
-:root[data-ui] .exportbar { gap: 12px 18px; padding-top: 16px; }
-:root[data-ui] .exportbar .check { margin-right: 2px; }
-:root[data-ui] .mixer .strip { gap: 8px; padding: 7px 8px; }
-:root[data-ui] .eq { gap: 8px 10px; }
-:root[data-ui] .counts { gap: 4px; margin-top: 6px; }
-:root[data-ui] .chip { padding: 1px 6px; }
-:root[data-ui] .mixer .ms { padding: 0; line-height: 20px; }
-:root[data-ui] .tabs button { padding: 2px 10px; }
-:root[data-ui] button.play, :root[data-ui] .expand { padding: 0; }
-:root[data-ui] .expand { padding: 0 4px; }
-:root[data-ui] .sample { padding: 3px 0; }
-:root[data-ui] .pack-head { gap: 10px; padding: 10px 12px; }
-:root[data-ui] .packs { gap: 8px; }
-:root[data-ui] .pick-head, :root[data-ui] .pick-ctl, :root[data-ui] .pick-foot { gap: 10px; }
 </style>
 
-<script>document.documentElement.setAttribute('data-ui', 'a');</script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<a class="skip" href="#work">跳到工作台</a>
+<header class="masthead">
+  <a class="wordmark" href="./index.html" aria-label="GenBeatz 首页">GEN<span>BEATZ</span><sup>®</sup></a>
+  <span class="edition">INDEPENDENT SOUND / BEAT LAB</span>
+  <div class="head-actions"><button id="artToggle" aria-expanded="true" aria-controls="artStage">视觉 / ON</button><button id="libraryToggle" aria-expanded="true" aria-controls="libraryPanel">采样库</button><button id="mixToggle" aria-expanded="false" aria-controls="mixerPanel">混音台 ↗</button><button id="keysBtn" title="快捷键（?）" aria-label="快捷键">?</button></div>
+</header>
+<section class="art-stage" id="artStage" aria-label="节拍动态雕塑">
+  <div class="signal-backdrop" aria-hidden="true">
+    <div class="grid-glow"></div>
+    <svg viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid slice">
+      <g class="signal-contours">
+        <path d="M408 276C476 222 463 157 545 128S666 83 711 24"/>
+        <path d="M451 292C508 233 502 178 577 147S710 104 752 37"/>
+        <path d="M502 305C551 250 548 198 615 167S757 128 795 55"/>
+        <path d="M559 315C599 266 595 218 657 190S805 153 842 77"/>
+        <path d="M620 318C654 282 646 241 704 214S854 180 891 102"/>
+        <path d="M686 318C715 296 704 266 758 239S904 212 944 132"/>
+      </g>
+      <g class="signal-trace"><path d="M380 219C510 178 592 234 708 174S871 102 1018 134"/></g>
+      <g class="signal-nodes">
+        <circle cx="545" cy="128" r="2.4"/><circle cx="615" cy="167" r="1.8"/>
+        <circle cx="708" cy="174" r="2.8"/><circle cx="805" cy="153" r="1.8"/>
+        <circle cx="891" cy="102" r="2.2"/><circle cx="944" cy="132" r="1.5"/>
+      </g>
+    </svg>
+  </div>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="art-copy"><span class="eyebrow">YOUR SAMPLES. NEW POSSIBILITIES.</span><h1>MAKE IT<br><em>HIT DIFFERENT.</em></h1><p>你的采样，下一段灵感。</p></div>
+  <div class="art-meta"><span class="art-label">01 / TENSION FIELD</span><span>移动拉扯 · 按下冲击</span></div>
+  <div class="art-controls"><button id="motionToggle" aria-pressed="true">动效 / ON</button></div>
+</section>
 <div class="app">
   <header class="transport" aria-label="项目控制">
-    <div class="logo" style="align-self:center">Gen<span>Beatz</span></div>
+    <div class="session-label"><span class="status-dot"></span> SESSION<br><small>生成设置</small></div>
     <span class="sep"></span>
     <label class="tgroup">BPM<input id="bpmInput" class="bpm" type="number" min="60" max="200" value="140" title="点击输入，滚轮或上下拖动调整"></label>
     <label class="tgroup">曲风<select id="genreSel"></select></label>
@@ -318,14 +231,14 @@ input[type=number] { width: 80px; font-family: var(--mono); }
     <label class="tgroup">数量<input id="countInput" type="number" min="1" max="20" value="6"></label>
     <label class="tgroup">鼓的搭配<select id="modeSel"><option value="pack">同包优先</option><option value="mix">跨包混搭</option></select></label>
     <span class="spacer"></span>
-    <button id="genBtn" class="primary big">生成</button>
+    <button id="genBtn" class="primary big">生成 BEATS ↗</button>
     <button id="playBtn" class="primary play playbtn" title="播放 / 停止（空格）" aria-label="播放">▶</button>
   </header>
-  <div id="genInfo" class="hint" style="margin:-8px 0 12px"></div>
+  <div class="session-status"><span id="genInfo" class="hint" role="status"></span><span>LOCAL AUDIO · 音频不上传</span></div>
 
-  <main class="grid">
-    <section class="panel stack" aria-label="采样库">
-      <h2 data-n="01">Library · 采样库</h2>
+  <main class="grid" id="studioGrid">
+    <section class="panel stack library" id="libraryPanel" aria-label="采样库">
+      <h2 data-n="01">SOUND LIBRARY <span>采样库</span></h2>
       <div class="row">
         <label class="btn" for="dirInput">选择采样库文件夹</label>
         <input id="dirInput" class="vh" type="file" webkitdirectory directory multiple>
@@ -355,8 +268,8 @@ input[type=number] { width: 80px; font-family: var(--mono); }
       </div>
     </section>
 
-    <section class="panel mixer" aria-label="混音台">
-      <h2 data-n="03">Mixer · 混音台</h2>
+    <section class="panel mixer" id="mixerPanel" aria-label="混音台" hidden>
+      <div class="mixer-heading"><h2 data-n="03">MIXER <span>混音台</span></h2><button id="mixClose" class="small" aria-label="收起混音台">收起 ↓</button></div>
       <div id="strips"></div>
       <div id="eq" class="eq"></div>
       <div class="row" style="margin-top:10px"><label class="check"><input id="tuneChk" type="checkbox"> 808 跟随 loop 调性</label></div>
@@ -366,8 +279,8 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 </div>
 <div id="toast" class="toast" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/lame.min.js"></script>
 <script>
 'use strict';
 const SR = 44100;
@@ -384,9 +297,17 @@ function el(tag, attrs = {}, ...kids) {
   for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : String(c));
   return e;
 }
+// Play a closing animation (CSS class) and then run done(); instant when motion is reduced.
+const motionOK = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+function animateOut(node, cls, done) {
+  if (!node || !motionOK()) { done && done(); return; }
+  let fin = false; const end = () => { if (fin) return; fin = true; if (!node.classList.contains(cls)) return; /* reopened meanwhile */ node.classList.remove(cls); done && done(); };
+  node.classList.add(cls); node.addEventListener('animationend', e => { if (e.target === node) end(); }, { once: true }); setTimeout(end, 320);
+}
 function toast(msg, ms = 2600) {
-  const t = $('#toast'); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, ms);
+  const t = $('#toast'); t.classList.remove('is-closing'); t.textContent = msg;
+  if (t.hidden) { t.hidden = false; t.style.animation = 'none'; void t.offsetWidth; t.style.animation = ''; }
+  clearTimeout(toast._t); toast._t = setTimeout(() => animateOut(t, 'is-closing', () => { t.hidden = true; }), ms);
 }
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -1054,7 +975,8 @@ function stretched(s, B, speed) {
 // gather buffers and all timed events (drums + loop segments) for one demo
 // ---------- Instrument track: a MIDI / chord file from the library played with a melodic one-shot (no auto-transpose; layered on the loop)
 function readVar(v, i) { let x = 0, b; do { b = v[i++]; x = (x << 7) | (b & 127); } while (b & 128 && i < v.length); return [x, i]; }
-function parseMidi(ab) {
+function parseMidi(ab, opt) {
+  const drums = !!(opt && opt.drums);
   const v = new Uint8Array(ab), dv = new DataView(ab);
   if (String.fromCharCode(...v.slice(0, 4)) !== 'MThd') throw new Error('不是 MIDI 文件');
   const hl = dv.getUint32(4), ntr = dv.getUint16(10); let ppq = dv.getUint16(12); if (ppq & 0x8000) ppq = 480;
@@ -1071,7 +993,7 @@ function parseMidi(ab) {
       rs = st; const type = st & 0xf0, ch = st & 15;
       if (type === 0xc0 || type === 0xd0) { j += 1; continue; }
       const a = v[j], b = v[j + 1]; j += 2;
-      if (ch === 9) continue; // GM drum channel
+      if (ch === 9 && !drums) continue; // GM drum channel (kept only for drum pattern import)
       const k = ch * 128 + a;
       if (type === 0x90 && b > 0) { if (!open.has(k)) open.set(k, []); open.get(k).push([tick, b]); }
       else if (type === 0x80 || (type === 0x90 && b === 0)) { const q = open.get(k); if (q && q.length) { const [t0, vel] = q.shift(); notes.push({ p: a, s: t0 / ppq, e: Math.max(t0 + 1, tick) / ppq, v: vel }); } }
@@ -1468,13 +1390,22 @@ function notes(d) {
   if (isSong(d)) { let b = 1; lines.push('', `全曲结构 (${songBars(d)} 小节, ${fmtTime(songBars(d) * 240 / d.bpm)}):`); for (const x of d.song.secs) { lines.push(`  ${String(b).padStart(3)}–${String(b + x.bars - 1).padEnd(3)} ${x.name.padEnd(7)} ${x.on.filter(sl => d.slots[sl]).map(sl => SLOT_LABEL[sl]).join(', ')}`); b += x.bars; }  }
   return lines.join('\n');
 }
-async function addDemoToZip(zip, d, fmt, folder) {
-  const base = baseName(d), dir = folder ? zip.folder(base) : zip;
+// every demo exports as plain WAV / MP3 files; only the stems are packed, one zip per demo
+async function exportDemo(sink, d, fmt) {
+  const base = baseName(d);
   const mix = isSong(d) ? await renderDemo(d) : (d.mix || (d.mix = await renderDemo(d))); // full songs are long: render fresh instead of keeping them in memory
-  if (fmt.wav) dir.file(base + '.wav', encodeWav(mix));
-  if (fmt.mp3) dir.file(base + '.mp3', encodeMp3(mix));
-  if (fmt.stems) for (const [sl, b] of await renderStems(d)) dir.file(`stems/${base}_${safe(SLOT_LABEL[sl])}.wav`, encodeWav(b));
-  dir.file('samples.txt', notes(d));
+  let n = 0;
+  if (fmt.wav) { await sink.write(base + '.wav', new Blob([encodeWav(mix)], { type: 'audio/wav' })); n++; }
+  if (fmt.mp3) { await sink.write(base + '.mp3', new Blob([encodeMp3(mix)], { type: 'audio/mpeg' })); n++; }
+  if (fmt.stems) {
+    const zip = new JSZip();
+    for (const [sl, b] of await renderStems(d)) zip.file(`${base}_${safe(SLOT_LABEL[sl])}.wav`, encodeWav(b));
+    zip.file('samples.txt', notes(d));
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    window.__lastZip = blob;
+    await sink.write(base + '_stems.zip', blob); n++;
+  }
+  return n;
 }
 function fmtNow() { return { wav: $('#fmtWav').checked, mp3: $('#fmtMp3').checked, stems: $('#fmtStems').checked }; }
 let dl = null;
@@ -1485,24 +1416,22 @@ async function saveFile(filename, blob) {
 }
 async function exportDemos(list, btn) {
   const fmt = fmtNow();
+  if (!list.length) return;
   if (!fmt.wav && !fmt.mp3 && !fmt.stems) { toast('至少勾选一种导出内容'); return; }
-  if (!window.JSZip) { toast('压缩库没有加载，检查网络后刷新'); return; }
+  if (fmt.stems && !window.JSZip) { toast('压缩库没有加载，分轨导出不可用'); return; }
   const label = btn.textContent; btn.disabled = true;
   try {
-    if (list.length > 1 && P.len === 'song') { // full songs are big: one zip per demo so the browser never holds the whole batch
-      for (let i = 0; i < list.length; i++) { btn.textContent = `导出中 ${i + 1}/${list.length}`; const z = new JSZip(); await addDemoToZip(z, list[i], fmt, false); await saveFile(baseName(list[i]) + '.zip', await z.generateAsync({ type: 'blob', compression: 'STORE' })); }
-      btn.textContent = label; btn.disabled = false; return;
-    }
-    const zip = new JSZip();
-    for (let i = 0; i < list.length; i++) { btn.textContent = `导出中 ${i + 1}/${list.length}`; await addDemoToZip(zip, list[i], fmt, list.length > 1); }
-    btn.textContent = '打包中…';
-    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-    const name = list.length > 1 ? `GenBeatz_${safe(GENRES[list[0].genre].name)}_${list[0].bpm}bpm_${list.length}条.zip` : baseName(list[0]) + '.zip';
-    window.__lastZip = blob;
-    await saveFile(name, blob);
+    // a batch goes into its own folder so a run of demos stays together
+    const sub = list.length > 1 ? `GenBeatz_${safe(GENRES[list[0].genre].name)}_${list[0].bpm}bpm_${stamp()}` : null;
+    const sink = await openSink(sub);
+    if (!sink) { btn.textContent = label; btn.disabled = false; return; }
+    let files = 0;
+    for (let i = 0; i < list.length; i++) { btn.textContent = `导出中 ${i + 1}/${list.length}`; files += await exportDemo(sink, list[i], fmt); }
+    toast(`已导出 ${files} 个文件到 ${sink.where}`, 4000);
   } catch (e) { toast('导出失败：' + e.message); }
   btn.textContent = label; btn.disabled = false;
 }
+const stamp = () => { const t = new Date(), z = n => String(n).padStart(2, '0'); return `${t.getFullYear()}${z(t.getMonth() + 1)}${z(t.getDate())}-${z(t.getHours())}${z(t.getMinutes())}${z(t.getSeconds())}`; };
 
 // ---------- UI: library
 function renderLibrary() {
@@ -1665,7 +1594,9 @@ function stepGrid(d) {
   }
   const un = el('button', { class: 'small', disabled: !(d.hist && d.hist.length) }, '撤销');
   un.addEventListener('click', () => undoEdit(d));
-  bar.append(un, status);
+  const pt = el('button', { class: 'small', title: '保存、导入（MIDI / 文件）或导出这条鼓型（Ctrl/⌘+S 直接保存）' }, 'Pattern 库');
+  pt.addEventListener('click', () => openPatterns(d));
+  bar.append(un, pt, status);
   return el('div', { class: 'steps-wrap' }, bar, g);
 }
 // playhead on the step grid: the current column lights up, lit cells flash; the grid page follows playback unless the user picked a page
@@ -1754,7 +1685,7 @@ function renderWork() {
   const tabs = $('#tabs'); tabs.replaceChildren();
   demos.forEach((d, i) => {
     const b = el('button', { role: 'tab', 'aria-selected': String(i === sel), title: `${GENRES[d.genre].name} · ${d.groove.src}` }, String(d.no).padStart(2, '0'));
-    b.addEventListener('click', () => { const wasPlaying = !!playing; sel = i; renderWork(); if (wasPlaying) playDemo(current()); });
+    b.addEventListener('click', () => { const wasPlaying = !!playing; sel = i; renderWork(); swapIn(); if (wasPlaying) playDemo(current()); });
     tabs.append(b);
   });
   const ws = $('#ws'); ws.replaceChildren();
@@ -1762,7 +1693,7 @@ function renderWork() {
   const d = current();
   if (!d) { ws.append(el('div', { class: 'empty' }, '选好采样包和参数，点「生成」')); return; }
   const g = GENRES[d.genre], k = demoKey(d);
-  const reroll = el('button', { title: '保留锁定的部分，其余重新随机' }, '重新生成这条');
+  const reroll = el('button', { id: 'rerollBtn', title: '保留锁定的部分，其余重新随机（R）' }, '重新生成这条');
   reroll.addEventListener('click', () => { const wasPlaying = playing && playing.d === d; makeDemo(d.params, newSeed(), d); renderWork(); if (wasPlaying) playDemo(d); });
   ws.append(
     el('div', { class: 'card-head' },
@@ -1953,7 +1884,7 @@ function openPicker(d, sl, onPick) {
   document.body.append(ov);
   draw(); q.focus();
 }
-function closePicker() { const o = $('#pickOv'); if (o) o.remove(); if (previewSample.src) try { previewSample.src.stop(); } catch (e) {} }
+function closePicker() { const o = $('#pickOv'); if (o) { o.removeAttribute('id'); animateOut(o, 'is-closing', () => o.remove()); } if (previewSample.src) try { previewSample.src.stop(); } catch (e) {} }
 // ---------- mixer UI
 let mixSel = 'kick';
 function renderMixer() {
@@ -2015,6 +1946,7 @@ drop.addEventListener('drop', async e => {
 $('#allOn').addEventListener('click', () => { for (const p of lib.packs.values()) p.enabled = true; saveOff(); renderLibrary(); });
 $('#allOff').addEventListener('click', () => { for (const p of lib.packs.values()) p.enabled = false; saveOff(); renderLibrary(); });
 $('#genBtn').addEventListener('click', generate);
+$('#keysBtn').addEventListener('click', () => openShortcuts());
 $('#exportAll').addEventListener('click', e => exportDemos(demos, e.currentTarget));
 $('#exportOne').addEventListener('click', e => { if (current()) exportDemos([current()], e.currentTarget); });
 $('#playBtn').addEventListener('click', () => { if (playing) stopPlayback(); else playDemo(current()); });
@@ -2031,16 +1963,54 @@ function setView(v, quiet) {
   view = v; $('#wsTitle').textContent = v === 'arrange' ? 'Arrange · 全曲编排' : 'Pattern · 鼓型';
   for (const b of document.querySelectorAll('#viewSeg button')) b.setAttribute('aria-pressed', String(b.dataset.v === v));
   if (v === 'arrange' && P.len !== 'song') { setLen('song'); return; }
-  if (!quiet) renderWork();
+  if (!quiet) { renderWork(); swapIn(); }
 }
+// short settle animation on the workspace after switching demo or view
+function swapIn() { const ws = $('#ws'); if (!motionOK()) return; ws.classList.remove('is-swapping'); void ws.offsetWidth; ws.classList.add('is-swapping'); clearTimeout(swapIn._t); swapIn._t = setTimeout(() => ws.classList.remove('is-swapping'), 260); }
 for (const b of document.querySelectorAll('#lenSeg button')) b.addEventListener('click', () => setLen(b.dataset.v));
 for (const b of document.querySelectorAll('#viewSeg button')) b.addEventListener('click', () => setView(b.dataset.v));
+// keyboard shortcuts (the list is in the 快捷键 dialog, opened with ?)
+const SHORTCUTS = [
+  ['空格', '播放 / 停止'], ['G', '生成一批'], ['R', '重新生成当前这条'], ['1 – 9', '切到第 n 条'], ['← / →', '上一条 / 下一条'],
+  ['[ / ]', 'BPM −1 / +1（按住 Shift ±5）'], ['P / A', 'Pattern / Arrange'], ['M', '混音台'], ['L', '采样库'],
+  ['E', '导出当前'], ['Shift + E', '全部导出'], ['Ctrl/⌘ + S', '把鼓型存进 Pattern 库'], ['Ctrl/⌘ + Z', '撤销'], ['?', '快捷键列表'], ['Esc', '关闭弹窗']
+];
+const typing = t => t && ((t.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(t.type)) || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { const t = e.target; if (t && (t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type) || t.tagName === 'TEXTAREA')) return; e.preventDefault(); undoEdit(current()); return; }
-  if (e.code !== 'Space' || e.repeat) return;
-  const t = e.target; if (t && ((t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type)) || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
-  e.preventDefault(); if (playing) stopPlayback(); else playDemo(current());
+  if (e.defaultPrevented || $('#pickOv')) return;
+  const t = e.target, mod = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
+  if (mod && !e.shiftKey && k === 'z') { if (typing(t)) return; e.preventDefault(); undoEdit(current()); return; }
+  if (mod && k === 's') { e.preventDefault(); if (current()) savePattern(current()); return; }
+  if (mod || e.altKey || typing(t) || e.repeat && e.code === 'Space') return;
+  const click = id => { const b = $(id); if (b && !b.disabled) b.click(); };
+  const onKnob = t && t.closest && t.closest('.knob');
+  let used = true;
+  if (e.code === 'Space') { if (playing) stopPlayback(); else playDemo(current()); }
+  else if (k === 'g') click('#genBtn');
+  else if (k === 'r') click('#rerollBtn');
+  else if (/^[1-9]$/.test(e.key) && demos[+e.key - 1]) { const btn = $('#tabs').children[+e.key - 1]; btn && btn.click(); }
+  else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !onKnob && demos.length) { const i = Math.max(0, Math.min(demos.length - 1, sel + (e.key === 'ArrowLeft' ? -1 : 1))); if (i !== sel) $('#tabs').children[i].click(); }
+  else if (e.key === '[' || e.key === ']' || e.key === '{' || e.key === '}') { const step = (e.shiftKey ? 5 : 1) * (e.key === '[' || e.key === '{' ? -1 : 1); setBpm(P.bpm + step, true); }
+  else if (k === 'p') setView('pattern');
+  else if (k === 'a') setView('arrange');
+  else if (k === 'm') click('#mixToggle');
+  else if (k === 'l') click('#libraryToggle');
+  else if (k === 'e') click(e.shiftKey ? '#exportAll' : '#exportOne');
+  else if (e.key === '?') openShortcuts();
+  else used = false;
+  if (used) e.preventDefault();
 });
+function openShortcuts() {
+  closePicker();
+  const close = el('button', { class: 'small', 'aria-label': '关闭' }, '✕'); close.addEventListener('click', closePicker);
+  const box = el('div', { class: 'picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': '快捷键', style: 'width:min(460px,100%)' },
+    el('div', { class: 'pick-head' }, el('strong', {}, '快捷键'), el('span', { class: 'spacer' }), close),
+    el('dl', { class: 'keys' }, SHORTCUTS.map(([a, b]) => [el('dt', {}, el('kbd', {}, a)), el('dd', {}, b)])));
+  const ov = el('div', { class: 'pick-ov', id: 'pickOv' }, box);
+  ov.addEventListener('pointerdown', e => { if (e.target === ov) closePicker(); });
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === '?') closePicker(); e.stopPropagation(); });
+  document.body.append(ov); close.focus();
+}
 
 addBuiltin();
 initParams();
@@ -2050,3 +2020,9 @@ generate();
 (async () => { try { if (window.claude && window.claude.use) dl = await window.claude.use('downloads'); } catch (e) { dl = null; } })();
 window.__gb = { parseMidi, addInstrument, openInstSettings, openPicker, renderStems, P, setLen, setView, playDemo, songBars, isSong, notes, lib, demos: () => demos, MIX, current, setBpm, buildEvents, renderDemo, classifyPath, parseKey, importFiles, GENRES, GROOVES };
 </script>
+
+<script src="io.js"></script>
+<script src="art-pbr.bundle.js"></script>
+<script src="studio.js"></script>
+</body>
+</html>
