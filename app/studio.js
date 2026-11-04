@@ -3,7 +3,7 @@
   const byId = id => document.getElementById(id);
   const stage = byId('artStage'), canvas = byId('particles'), ctx = canvas.getContext('2d');
   const sculpture = window.createBeatSculpture?.(stage);
-  let slowFrames = 0, frameInterval = 32;
+  let slowFrames = 0, frameInterval = 32, lastGlow = 0;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   let motion = !reduce.matches, visible = true, raf = 0, last = 0, phase = 0, burst = 0;
   let width = 0, height = 0, pointer = { x: 0, y: 0, active: false }, drift = { x: 0, y: 0 };
@@ -19,6 +19,9 @@
     ctx.clearRect(0, 0, width, height);
     const running = !!playing;
     const beat = running ? Math.pow((1 + Math.cos((playing.ctx.currentTime - playing.t0) * current().bpm / 60 * Math.PI * 2)) / 2, 6) : 0;
+    // The grid behind the form lights up on the beat (and on a click); CSS reads --beat.
+    const glow = Math.min(1, beat + burst * .45);
+    if (Math.abs(glow - lastGlow) > .01) { lastGlow = glow; stage.style.setProperty('--beat', glow.toFixed(3)); }
     if (sculpture?.render(time, beat, drift, burst, pointer)) return;
     const cx = width * (width < 760 ? .83 : .68) + drift.x * 16, cy = height * .51 + drift.y * 10;
     const radius = Math.min(height * .7, width * .26);

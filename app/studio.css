@@ -275,3 +275,31 @@ kbd { display:inline-block; min-width:24px; padding:2px 8px; font:12px var(--mon
 .exportdir { flex:1; max-width:420px; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
 input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+
+/* Grid light: a brighter copy of the backdrop grid, lit from behind the sculpture.
+   It breathes slowly on its own and flashes with the beat (--beat, set by studio.js while playing). */
+.grid-glow { position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(196,245,210,.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196,245,210,.15) 1px, transparent 1px),
+    radial-gradient(ellipse 34% 62% at 70% 54%, rgba(184,235,196,.07), transparent 70%);
+  background-size:48px 48px, 48px 48px, 100% 100%;
+  -webkit-mask-image:radial-gradient(ellipse 40% 78% at 70% 54%, #000 0%, rgba(0,0,0,.55) 38%, transparent 72%);
+  mask-image:radial-gradient(ellipse 40% 78% at 70% 54%, #000 0%, rgba(0,0,0,.55) 38%, transparent 72%);
+  animation:gridBreathe 7s ease-in-out infinite; }
+.grid-glow::after { content:""; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(214,255,226,.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(214,255,226,.28) 1px, transparent 1px);
+  background-size:48px 48px;
+  -webkit-mask-image:radial-gradient(ellipse 26% 54% at 70% 54%, #000, transparent 75%);
+  mask-image:radial-gradient(ellipse 26% 54% at 70% 54%, #000, transparent 75%);
+  opacity:var(--beat, 0); transition:opacity 90ms linear; }
+@keyframes gridBreathe { 0%, 100% { opacity:.22; } 50% { opacity:1; } }
+@media (max-width:760px) {
+  .grid-glow, .grid-glow::after { -webkit-mask-position:0 0; }
+  .grid-glow { background-position:0 0, 0 0, 0 0; }
+}
+.art-stage { height:300px; }
+@media (min-width:1600px) { .art-stage { height:340px; } }
+@media (max-width:760px) { .art-stage { height:240px; } .grid-glow, .grid-glow::after { -webkit-mask-image:radial-gradient(ellipse 50% 70% at 82% 52%, #000, transparent 75%); mask-image:radial-gradient(ellipse 50% 70% at 82% 52%, #000, transparent 75%); } }

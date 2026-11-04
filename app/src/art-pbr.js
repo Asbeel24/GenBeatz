@@ -21,13 +21,13 @@ window.createBeatSculpture = host => {
     environment = pmrem.fromScene(room, .06);
     scene.environment = environment.texture;
     room.dispose(); pmrem.dispose();
-    const camera = new THREE.OrthographicCamera(-4, 4, 2.2, -2.2, .1, 30);
-    camera.position.set(0, 0, 10);
+    const camera = new THREE.OrthographicCamera(-4, 4, 2.2, -2.2, .1, 40);
+    camera.position.set(0, 0, 16);
     const group = new THREE.Group(); scene.add(group);
     const key = new THREE.DirectionalLight(0xe7fff3, 2.4); key.position.set(-3, 4, 5); scene.add(key);
     const rim = new THREE.DirectionalLight(0x8b9fc9, 2.4); rim.position.set(3, -1, -2); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xc4d7d0, .7); fill.position.set(2, 1, 3); scene.add(fill);
-    const cols = 96, rows = 6, points = new Float32Array((cols + 1) * (rows + 1) * 3), indices = [];
+    const cols = 168, rows = 10, points = new Float32Array((cols + 1) * (rows + 1) * 3), indices = [];
     for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
       const a = i * (rows + 1) + j, b = a + rows + 1;
       indices.push(a, b, a + 1, b, b + 1, a + 1);
@@ -44,7 +44,7 @@ window.createBeatSculpture = host => {
     const edgeIndices = [];
     for (let i = 0; i < cols; i++) {
       for (const j of [0, rows]) edgeIndices.push(i * (rows + 1) + j, (i + 1) * (rows + 1) + j);
-      if (i % 7 === 0) for (let j = 0; j < rows; j++) edgeIndices.push(i * (rows + 1) + j, i * (rows + 1) + j + 1);
+      if (i % 12 === 0) for (let j = 0; j < rows; j++) edgeIndices.push(i * (rows + 1) + j, i * (rows + 1) + j + 1);
     }
     const edges = new THREE.BufferGeometry(); edges.setAttribute('position', geometry.attributes.position); edges.setIndex(edgeIndices);
     const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0xd2eee0, transparent:true, opacity:.25}));
@@ -57,7 +57,10 @@ window.createBeatSculpture = host => {
     return {
       resize(w, h) {
         ratio = w / h; camera.left = -2.2 * ratio; camera.right = 2.2 * ratio; camera.updateProjectionMatrix();
-        group.position.x = (w < 760 ? .64 : .36) * 2.2 * ratio;
+        // Oversized on purpose: the form bleeds past the top and bottom of the stage and is cropped like a poster.
+        const narrow = w < 760;
+        group.scale.setScalar(narrow ? 1.3 : 2.35);
+        group.position.set((narrow ? .66 : .4) * 2.2 * ratio, narrow ? -.1 : -.18, 0);
         renderer.setSize(w, h, false);
       },
       lowerQuality() { if (!lowQuality) { lowQuality = true; renderer.setPixelRatio(1); } },
