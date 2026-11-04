@@ -7,8 +7,7 @@
 <title>GenBeatz — Beat Lab</title>
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="vendor/fonts.css">
 <style>
 /* Layout: hardware-console look — sample library rack on the left, pattern workbench on the right; single dark theme by choice */
 :root {
@@ -23,7 +22,7 @@
   --accent-ink: #1b1306;
   --k: #f2a93b; --s: #e86a5a; --h: #6fc3d9; --o: #4f9fb8; --p: #b48ce8; --r: #e0a3c8; --b: #7ed39a;
   --warn: #e8c35a;
-  --display: "Chakra Petch", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --display: "PingFang SC", "Microsoft YaHei", sans-serif;
   --body: "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -194,7 +193,7 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 <header class="masthead">
   <a class="wordmark" href="./index.html" aria-label="GenBeatz 首页">GEN<span>BEATZ</span><sup>®</sup></a>
   <span class="edition">INDEPENDENT SOUND / BEAT LAB</span>
-  <div class="head-actions"><button id="artToggle" aria-expanded="true" aria-controls="artStage">视觉 / ON</button><button id="libraryToggle" aria-expanded="true" aria-controls="libraryPanel">采样库</button><button id="mixToggle" aria-expanded="false" aria-controls="mixerPanel">混音台 ↗</button></div>
+  <div class="head-actions"><button id="artToggle" aria-expanded="true" aria-controls="artStage">视觉 / ON</button><button id="libraryToggle" aria-expanded="true" aria-controls="libraryPanel">采样库</button><button id="mixToggle" aria-expanded="false" aria-controls="mixerPanel">混音台 ↗</button><button id="keysBtn" title="快捷键（?）" aria-label="快捷键">?</button></div>
 </header>
 <section class="art-stage" id="artStage" aria-label="节拍动态雕塑">
   <div class="signal-backdrop" aria-hidden="true">
@@ -279,8 +278,8 @@ input[type=number] { width: 80px; font-family: var(--mono); }
 </div>
 <div id="toast" class="toast" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/lame.min.js"></script>
 <script>
 'use strict';
 const SR = 44100;
@@ -975,7 +974,8 @@ function stretched(s, B, speed) {
 // gather buffers and all timed events (drums + loop segments) for one demo
 // ---------- Instrument track: a MIDI / chord file from the library played with a melodic one-shot (no auto-transpose; layered on the loop)
 function readVar(v, i) { let x = 0, b; do { b = v[i++]; x = (x << 7) | (b & 127); } while (b & 128 && i < v.length); return [x, i]; }
-function parseMidi(ab) {
+function parseMidi(ab, opt) {
+  const drums = !!(opt && opt.drums);
   const v = new Uint8Array(ab), dv = new DataView(ab);
   if (String.fromCharCode(...v.slice(0, 4)) !== 'MThd') throw new Error('不是 MIDI 文件');
   const hl = dv.getUint32(4), ntr = dv.getUint16(10); let ppq = dv.getUint16(12); if (ppq & 0x8000) ppq = 480;
@@ -992,7 +992,7 @@ function parseMidi(ab) {
       rs = st; const type = st & 0xf0, ch = st & 15;
       if (type === 0xc0 || type === 0xd0) { j += 1; continue; }
       const a = v[j], b = v[j + 1]; j += 2;
-      if (ch === 9) continue; // GM drum channel
+      if (ch === 9 && !drums) continue; // GM drum channel (kept only for drum pattern import)
       const k = ch * 128 + a;
       if (type === 0x90 && b > 0) { if (!open.has(k)) open.set(k, []); open.get(k).push([tick, b]); }
       else if (type === 0x80 || (type === 0x90 && b === 0)) { const q = open.get(k); if (q && q.length) { const [t0, vel] = q.shift(); notes.push({ p: a, s: t0 / ppq, e: Math.max(t0 + 1, tick) / ppq, v: vel }); } }
@@ -1389,13 +1389,22 @@ function notes(d) {
   if (isSong(d)) { let b = 1; lines.push('', `全曲结构 (${songBars(d)} 小节, ${fmtTime(songBars(d) * 240 / d.bpm)}):`); for (const x of d.song.secs) { lines.push(`  ${String(b).padStart(3)}–${String(b + x.bars - 1).padEnd(3)} ${x.name.padEnd(7)} ${x.on.filter(sl => d.slots[sl]).map(sl => SLOT_LABEL[sl]).join(', ')}`); b += x.bars; }  }
   return lines.join('\n');
 }
-async function addDemoToZip(zip, d, fmt, folder) {
-  const base = baseName(d), dir = folder ? zip.folder(base) : zip;
+// every demo exports as plain WAV / MP3 files; only the stems are packed, one zip per demo
+async function exportDemo(sink, d, fmt) {
+  const base = baseName(d);
   const mix = isSong(d) ? await renderDemo(d) : (d.mix || (d.mix = await renderDemo(d))); // full songs are long: render fresh instead of keeping them in memory
-  if (fmt.wav) dir.file(base + '.wav', encodeWav(mix));
-  if (fmt.mp3) dir.file(base + '.mp3', encodeMp3(mix));
-  if (fmt.stems) for (const [sl, b] of await renderStems(d)) dir.file(`stems/${base}_${safe(SLOT_LABEL[sl])}.wav`, encodeWav(b));
-  dir.file('samples.txt', notes(d));
+  let n = 0;
+  if (fmt.wav) { await sink.write(base + '.wav', new Blob([encodeWav(mix)], { type: 'audio/wav' })); n++; }
+  if (fmt.mp3) { await sink.write(base + '.mp3', new Blob([encodeMp3(mix)], { type: 'audio/mpeg' })); n++; }
+  if (fmt.stems) {
+    const zip = new JSZip();
+    for (const [sl, b] of await renderStems(d)) zip.file(`${base}_${safe(SLOT_LABEL[sl])}.wav`, encodeWav(b));
+    zip.file('samples.txt', notes(d));
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    window.__lastZip = blob;
+    await sink.write(base + '_stems.zip', blob); n++;
+  }
+  return n;
 }
 function fmtNow() { return { wav: $('#fmtWav').checked, mp3: $('#fmtMp3').checked, stems: $('#fmtStems').checked }; }
 let dl = null;
@@ -1406,24 +1415,22 @@ async function saveFile(filename, blob) {
 }
 async function exportDemos(list, btn) {
   const fmt = fmtNow();
+  if (!list.length) return;
   if (!fmt.wav && !fmt.mp3 && !fmt.stems) { toast('至少勾选一种导出内容'); return; }
-  if (!window.JSZip) { toast('压缩库没有加载，检查网络后刷新'); return; }
+  if (fmt.stems && !window.JSZip) { toast('压缩库没有加载，分轨导出不可用'); return; }
   const label = btn.textContent; btn.disabled = true;
   try {
-    if (list.length > 1 && P.len === 'song') { // full songs are big: one zip per demo so the browser never holds the whole batch
-      for (let i = 0; i < list.length; i++) { btn.textContent = `导出中 ${i + 1}/${list.length}`; const z = new JSZip(); await addDemoToZip(z, list[i], fmt, false); await saveFile(baseName(list[i]) + '.zip', await z.generateAsync({ type: 'blob', compression: 'STORE' })); }
-      btn.textContent = label; btn.disabled = false; return;
-    }
-    const zip = new JSZip();
-    for (let i = 0; i < list.length; i++) { btn.textContent = `导出中 ${i + 1}/${list.length}`; await addDemoToZip(zip, list[i], fmt, list.length > 1); }
-    btn.textContent = '打包中…';
-    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-    const name = list.length > 1 ? `GenBeatz_${safe(GENRES[list[0].genre].name)}_${list[0].bpm}bpm_${list.length}条.zip` : baseName(list[0]) + '.zip';
-    window.__lastZip = blob;
-    await saveFile(name, blob);
+    // a batch goes into its own folder so a run of demos stays together
+    const sub = list.length > 1 ? `GenBeatz_${safe(GENRES[list[0].genre].name)}_${list[0].bpm}bpm_${stamp()}` : null;
+    const sink = await openSink(sub);
+    if (!sink) { btn.textContent = label; btn.disabled = false; return; }
+    let files = 0;
+    for (let i = 0; i < list.length; i++) { btn.textContent = `导出中 ${i + 1}/${list.length}`; files += await exportDemo(sink, list[i], fmt); }
+    toast(`已导出 ${files} 个文件到 ${sink.where}`, 4000);
   } catch (e) { toast('导出失败：' + e.message); }
   btn.textContent = label; btn.disabled = false;
 }
+const stamp = () => { const t = new Date(), z = n => String(n).padStart(2, '0'); return `${t.getFullYear()}${z(t.getMonth() + 1)}${z(t.getDate())}-${z(t.getHours())}${z(t.getMinutes())}${z(t.getSeconds())}`; };
 
 // ---------- UI: library
 function renderLibrary() {
@@ -1586,7 +1593,9 @@ function stepGrid(d) {
   }
   const un = el('button', { class: 'small', disabled: !(d.hist && d.hist.length) }, '撤销');
   un.addEventListener('click', () => undoEdit(d));
-  bar.append(un, status);
+  const pt = el('button', { class: 'small', title: '保存、导入（MIDI / 文件）或导出这条鼓型（Ctrl/⌘+S 直接保存）' }, 'Pattern 库');
+  pt.addEventListener('click', () => openPatterns(d));
+  bar.append(un, pt, status);
   return el('div', { class: 'steps-wrap' }, bar, g);
 }
 // playhead on the step grid: the current column lights up, lit cells flash; the grid page follows playback unless the user picked a page
@@ -1683,7 +1692,7 @@ function renderWork() {
   const d = current();
   if (!d) { ws.append(el('div', { class: 'empty' }, '选好采样包和参数，点「生成」')); return; }
   const g = GENRES[d.genre], k = demoKey(d);
-  const reroll = el('button', { title: '保留锁定的部分，其余重新随机' }, '重新生成这条');
+  const reroll = el('button', { id: 'rerollBtn', title: '保留锁定的部分，其余重新随机（R）' }, '重新生成这条');
   reroll.addEventListener('click', () => { const wasPlaying = playing && playing.d === d; makeDemo(d.params, newSeed(), d); renderWork(); if (wasPlaying) playDemo(d); });
   ws.append(
     el('div', { class: 'card-head' },
@@ -1936,6 +1945,7 @@ drop.addEventListener('drop', async e => {
 $('#allOn').addEventListener('click', () => { for (const p of lib.packs.values()) p.enabled = true; saveOff(); renderLibrary(); });
 $('#allOff').addEventListener('click', () => { for (const p of lib.packs.values()) p.enabled = false; saveOff(); renderLibrary(); });
 $('#genBtn').addEventListener('click', generate);
+$('#keysBtn').addEventListener('click', () => openShortcuts());
 $('#exportAll').addEventListener('click', e => exportDemos(demos, e.currentTarget));
 $('#exportOne').addEventListener('click', e => { if (current()) exportDemos([current()], e.currentTarget); });
 $('#playBtn').addEventListener('click', () => { if (playing) stopPlayback(); else playDemo(current()); });
@@ -1958,12 +1968,48 @@ function setView(v, quiet) {
 function swapIn() { const ws = $('#ws'); if (!motionOK()) return; ws.classList.remove('is-swapping'); void ws.offsetWidth; ws.classList.add('is-swapping'); clearTimeout(swapIn._t); swapIn._t = setTimeout(() => ws.classList.remove('is-swapping'), 260); }
 for (const b of document.querySelectorAll('#lenSeg button')) b.addEventListener('click', () => setLen(b.dataset.v));
 for (const b of document.querySelectorAll('#viewSeg button')) b.addEventListener('click', () => setView(b.dataset.v));
+// keyboard shortcuts (the list is in the 快捷键 dialog, opened with ?)
+const SHORTCUTS = [
+  ['空格', '播放 / 停止'], ['G', '生成一批'], ['R', '重新生成当前这条'], ['1 – 9', '切到第 n 条'], ['← / →', '上一条 / 下一条'],
+  ['[ / ]', 'BPM −1 / +1（按住 Shift ±5）'], ['P / A', 'Pattern / Arrange'], ['M', '混音台'], ['L', '采样库'],
+  ['E', '导出当前'], ['Shift + E', '全部导出'], ['Ctrl/⌘ + S', '把鼓型存进 Pattern 库'], ['Ctrl/⌘ + Z', '撤销'], ['?', '快捷键列表'], ['Esc', '关闭弹窗']
+];
+const typing = t => t && ((t.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(t.type)) || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { const t = e.target; if (t && (t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type) || t.tagName === 'TEXTAREA')) return; e.preventDefault(); undoEdit(current()); return; }
-  if (e.code !== 'Space' || e.repeat) return;
-  const t = e.target; if (t && ((t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type)) || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
-  e.preventDefault(); if (playing) stopPlayback(); else playDemo(current());
+  if (e.defaultPrevented || $('#pickOv')) return;
+  const t = e.target, mod = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
+  if (mod && !e.shiftKey && k === 'z') { if (typing(t)) return; e.preventDefault(); undoEdit(current()); return; }
+  if (mod && k === 's') { e.preventDefault(); if (current()) savePattern(current()); return; }
+  if (mod || e.altKey || typing(t) || e.repeat && e.code === 'Space') return;
+  const click = id => { const b = $(id); if (b && !b.disabled) b.click(); };
+  const onKnob = t && t.closest && t.closest('.knob');
+  let used = true;
+  if (e.code === 'Space') { if (playing) stopPlayback(); else playDemo(current()); }
+  else if (k === 'g') click('#genBtn');
+  else if (k === 'r') click('#rerollBtn');
+  else if (/^[1-9]$/.test(e.key) && demos[+e.key - 1]) { const btn = $('#tabs').children[+e.key - 1]; btn && btn.click(); }
+  else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !onKnob && demos.length) { const i = Math.max(0, Math.min(demos.length - 1, sel + (e.key === 'ArrowLeft' ? -1 : 1))); if (i !== sel) $('#tabs').children[i].click(); }
+  else if (e.key === '[' || e.key === ']' || e.key === '{' || e.key === '}') { const step = (e.shiftKey ? 5 : 1) * (e.key === '[' || e.key === '{' ? -1 : 1); setBpm(P.bpm + step, true); }
+  else if (k === 'p') setView('pattern');
+  else if (k === 'a') setView('arrange');
+  else if (k === 'm') click('#mixToggle');
+  else if (k === 'l') click('#libraryToggle');
+  else if (k === 'e') click(e.shiftKey ? '#exportAll' : '#exportOne');
+  else if (e.key === '?') openShortcuts();
+  else used = false;
+  if (used) e.preventDefault();
 });
+function openShortcuts() {
+  closePicker();
+  const close = el('button', { class: 'small', 'aria-label': '关闭' }, '✕'); close.addEventListener('click', closePicker);
+  const box = el('div', { class: 'picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': '快捷键', style: 'width:min(460px,100%)' },
+    el('div', { class: 'pick-head' }, el('strong', {}, '快捷键'), el('span', { class: 'spacer' }), close),
+    el('dl', { class: 'keys' }, SHORTCUTS.map(([a, b]) => [el('dt', {}, el('kbd', {}, a)), el('dd', {}, b)])));
+  const ov = el('div', { class: 'pick-ov', id: 'pickOv' }, box);
+  ov.addEventListener('pointerdown', e => { if (e.target === ov) closePicker(); });
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === '?') closePicker(); e.stopPropagation(); });
+  document.body.append(ov); close.focus();
+}
 
 addBuiltin();
 initParams();
@@ -1974,6 +2020,7 @@ generate();
 window.__gb = { parseMidi, addInstrument, openInstSettings, openPicker, renderStems, P, setLen, setView, playDemo, songBars, isSong, notes, lib, demos: () => demos, MIX, current, setBpm, buildEvents, renderDemo, classifyPath, parseKey, importFiles, GENRES, GROOVES };
 </script>
 
+<script src="io.js"></script>
 <script src="art-pbr.bundle.js"></script>
 <script src="studio.js"></script>
 </body>
