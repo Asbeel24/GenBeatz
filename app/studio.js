@@ -93,10 +93,34 @@
   function motionUI() { byId('motionToggle').textContent = '动效 / ' + (motion ? 'ON' : 'OFF'); byId('motionToggle').setAttribute('aria-pressed', String(motion)); sync(); }
   byId('motionToggle').addEventListener('click', () => { motion = !motion; motionUI(); });
   reduce.addEventListener('change', () => { motion = !reduce.matches; motionUI(); });
-  byId('artToggle').addEventListener('click', () => { stage.hidden = !stage.hidden; byId('artToggle').setAttribute('aria-expanded', String(!stage.hidden)); byId('artToggle').textContent = '视觉 / ' + (stage.hidden ? 'OFF' : 'ON'); resize(); sync(); });
-  byId('libraryToggle').addEventListener('click', () => { const panel = byId('libraryPanel'); panel.hidden = !panel.hidden; byId('libraryToggle').setAttribute('aria-expanded', String(!panel.hidden)); byId('studioGrid').classList.toggle('library-hidden', panel.hidden); });
-  function setMixer(open) { byId('mixerPanel').hidden = !open; byId('mixToggle').setAttribute('aria-expanded', String(open)); if (open) { byId('mixerPanel').scrollIntoView({ behavior: reduce.matches ? 'instant' : 'smooth', block:'start' }); byId('mixClose').focus({ preventScroll:true }); } else byId('mixToggle').focus({ preventScroll:true }); }
-  byId('mixToggle').addEventListener('click', () => setMixer(byId('mixerPanel').hidden));
+  // Panels animate in and out; animateOut (index.html) is instant under reduced motion.
+  const playIn = (node, cls) => { if (reduce.matches) return; node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); node.addEventListener('animationend', () => node.classList.remove(cls), { once: true }); };
+  function setArt(open) {
+    byId('artToggle').setAttribute('aria-expanded', String(open)); byId('artToggle').textContent = '视觉 / ' + (open ? 'ON' : 'OFF');
+    if (open) {
+      stage.hidden = false; resize();
+      if (!reduce.matches) { stage.classList.add('is-collapsed'); void stage.offsetHeight; }
+      stage.classList.remove('is-collapsed'); sync();
+    } else if (reduce.matches) { stage.hidden = true; sync(); }
+    else {
+      stage.classList.add('is-collapsed');
+      const done = () => { if (stage.classList.contains('is-collapsed')) { stage.hidden = true; sync(); } };
+      stage.addEventListener('transitionend', e => { if (e.target === stage && e.propertyName === 'height') done(); }, { once: true }); setTimeout(done, 400);
+    }
+  }
+  byId('artToggle').addEventListener('click', () => setArt(stage.hidden || stage.classList.contains('is-collapsed')));
+  byId('libraryToggle').addEventListener('click', () => {
+    const panel = byId('libraryPanel'), open = panel.hidden || panel.classList.contains('is-closing');
+    byId('libraryToggle').setAttribute('aria-expanded', String(open));
+    if (open) { panel.classList.remove('is-closing'); panel.hidden = false; byId('studioGrid').classList.remove('library-hidden'); playIn(panel, 'is-opening'); }
+    else animateOut(panel, 'is-closing', () => { panel.hidden = true; byId('studioGrid').classList.add('library-hidden'); });
+  });
+  function setMixer(open) {
+    const panel = byId('mixerPanel'); byId('mixToggle').setAttribute('aria-expanded', String(open));
+    if (open) { panel.classList.remove('is-closing'); panel.hidden = false; playIn(panel, 'is-opening'); panel.scrollIntoView({ behavior: reduce.matches ? 'instant' : 'smooth', block:'start' }); byId('mixClose').focus({ preventScroll:true }); }
+    else { animateOut(panel, 'is-closing', () => { panel.hidden = true; }); byId('mixToggle').focus({ preventScroll:true }); }
+  }
+  byId('mixToggle').addEventListener('click', () => setMixer(byId('mixerPanel').hidden || byId('mixerPanel').classList.contains('is-closing')));
   byId('mixClose').addEventListener('click', () => setMixer(false));
   byId('genBtn').addEventListener('click', () => { burst = 1; phase += .4; draw(phase); });
   stage.addEventListener('art-renderer-lost', sync);

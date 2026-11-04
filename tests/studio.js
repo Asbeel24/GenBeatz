@@ -36,14 +36,14 @@ const JSZip = require('jszip');
     assert.ok(await page.locator('#mixerPanel').isVisible());
     await page.locator('#mixReset').click();
     await page.locator('#mixClose').click();
-    assert.equal(await page.locator('#mixerPanel').isVisible(), false);
+    await page.locator('#mixerPanel').waitFor({ state: 'hidden', timeout: 2000 }); // closes after its animation
     await page.locator('#libraryToggle').click();
-    assert.equal(await page.locator('#libraryPanel').isVisible(), false);
+    await page.locator('#libraryPanel').waitFor({ state: 'hidden', timeout: 2000 }); // closes after its animation
     await page.locator('#libraryToggle').click();
     await page.locator('#motionToggle').click();
     assert.equal(await page.locator('#motionToggle').getAttribute('aria-pressed'), 'false');
     await page.locator('#artToggle').click();
-    assert.equal(await page.locator('#artStage').isVisible(), false);
+    await page.locator('#artStage').waitFor({ state: 'hidden', timeout: 2000 }); // closes after its animation
     await page.locator('#artToggle').click();
     // Exercise the real download and inspect its archive, not just enabled buttons.
     const downloadPromise = page.waitForEvent('download');

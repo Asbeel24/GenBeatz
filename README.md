@@ -34,6 +34,13 @@ Batch beat-demo generator that works from your own sample library. Browser-based
 
 直接打开 `app/index.html`（保留同目录 CSS / JS 文件），或运行 `npm start` 后访问 `http://127.0.0.1:4173/app/`。
 
+### 界面细节
+
+- 间距统一为 4 / 8 / 12 / 16 / 24 / 32 px；顶部参数栏所有控件同高 36px，标签对齐在一条线上。
+- 英文大写标签保留字距，中文正文字距收到接近 0；数字用等宽数字（BPM、旋钮、dB）。
+- 采样库面板在滚动时停留在可视区内。
+- 动画：弹窗（选择音色、Loop 设置、Instrument 设置）淡入 + 轻微放大，关闭更快；混音台上浮出现、下沉收起；采样库从左滑入滑出；视觉区折叠高度；提示条淡入淡出；切换 demo / Pattern / Arrange 时内容轻微落定。打开用 ease-out 约 220ms，关闭用 ease-in 约 150ms；系统开启「减少动态效果」时全部即时切换。
+
 ### 验证
 
 ```sh

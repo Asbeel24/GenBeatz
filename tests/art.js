@@ -55,7 +55,7 @@ const path = require('node:path');
     assert.equal(await fallback.locator('#artStage').getAttribute('data-renderer'), 'fallback');
     assert.equal(await fallback.locator('.pbr-art').count(), 0);
     await fallback.locator('#libraryToggle').click();
-    assert.equal(await fallback.locator('#libraryPanel').isVisible(), false);
+    await fallback.locator('#libraryPanel').waitFor({ state: 'hidden', timeout: 2000 }); // closes after its animation
     assert.deepEqual(errors, []);
     console.log('PASS: PBR active, changing frames, exact pause, context-loss fallback, unavailable-WebGL fallback, working controls; no runtime errors.');
   } finally { await browser.close(); }

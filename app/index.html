@@ -297,9 +297,17 @@ function el(tag, attrs = {}, ...kids) {
   for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : String(c));
   return e;
 }
+// Play a closing animation (CSS class) and then run done(); instant when motion is reduced.
+const motionOK = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+function animateOut(node, cls, done) {
+  if (!node || !motionOK()) { done && done(); return; }
+  let fin = false; const end = () => { if (fin) return; fin = true; if (!node.classList.contains(cls)) return; /* reopened meanwhile */ node.classList.remove(cls); done && done(); };
+  node.classList.add(cls); node.addEventListener('animationend', e => { if (e.target === node) end(); }, { once: true }); setTimeout(end, 320);
+}
 function toast(msg, ms = 2600) {
-  const t = $('#toast'); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, ms);
+  const t = $('#toast'); t.classList.remove('is-closing'); t.textContent = msg;
+  if (t.hidden) { t.hidden = false; t.style.animation = 'none'; void t.offsetWidth; t.style.animation = ''; }
+  clearTimeout(toast._t); toast._t = setTimeout(() => animateOut(t, 'is-closing', () => { t.hidden = true; }), ms);
 }
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -1667,7 +1675,7 @@ function renderWork() {
   const tabs = $('#tabs'); tabs.replaceChildren();
   demos.forEach((d, i) => {
     const b = el('button', { role: 'tab', 'aria-selected': String(i === sel), title: `${GENRES[d.genre].name} · ${d.groove.src}` }, String(d.no).padStart(2, '0'));
-    b.addEventListener('click', () => { const wasPlaying = !!playing; sel = i; renderWork(); if (wasPlaying) playDemo(current()); });
+    b.addEventListener('click', () => { const wasPlaying = !!playing; sel = i; renderWork(); swapIn(); if (wasPlaying) playDemo(current()); });
     tabs.append(b);
   });
   const ws = $('#ws'); ws.replaceChildren();
@@ -1866,7 +1874,7 @@ function openPicker(d, sl, onPick) {
   document.body.append(ov);
   draw(); q.focus();
 }
-function closePicker() { const o = $('#pickOv'); if (o) o.remove(); if (previewSample.src) try { previewSample.src.stop(); } catch (e) {} }
+function closePicker() { const o = $('#pickOv'); if (o) { o.removeAttribute('id'); animateOut(o, 'is-closing', () => o.remove()); } if (previewSample.src) try { previewSample.src.stop(); } catch (e) {} }
 // ---------- mixer UI
 let mixSel = 'kick';
 function renderMixer() {
@@ -1944,8 +1952,10 @@ function setView(v, quiet) {
   view = v; $('#wsTitle').textContent = v === 'arrange' ? 'Arrange · 全曲编排' : 'Pattern · 鼓型';
   for (const b of document.querySelectorAll('#viewSeg button')) b.setAttribute('aria-pressed', String(b.dataset.v === v));
   if (v === 'arrange' && P.len !== 'song') { setLen('song'); return; }
-  if (!quiet) renderWork();
+  if (!quiet) { renderWork(); swapIn(); }
 }
+// short settle animation on the workspace after switching demo or view
+function swapIn() { const ws = $('#ws'); if (!motionOK()) return; ws.classList.remove('is-swapping'); void ws.offsetWidth; ws.classList.add('is-swapping'); clearTimeout(swapIn._t); swapIn._t = setTimeout(() => ws.classList.remove('is-swapping'), 260); }
 for (const b of document.querySelectorAll('#lenSeg button')) b.addEventListener('click', () => setLen(b.dataset.v));
 for (const b of document.querySelectorAll('#viewSeg button')) b.addEventListener('click', () => setView(b.dataset.v));
 document.addEventListener('keydown', e => {

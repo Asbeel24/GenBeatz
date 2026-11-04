@@ -141,3 +141,122 @@ button.play[aria-label="停止"] { background:var(--accent); color:var(--accent-
 @keyframes signalSweep { 0%,14% { transform:translate3d(-22%,0,0); opacity:.12; } 55% { opacity:.62; } 86%,100% { transform:translate3d(22%,0,0); opacity:.12; } }
 @keyframes traceFlow { to { stroke-dashoffset:-144; } }
 @keyframes nodeBreathe { from { opacity:.2; } to { opacity:.52; } }
+
+/* ───────────── Polish pass: type rhythm, spacing scale, open/close motion ───────────── */
+:root {
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px;
+  --ctl:36px;                       /* one control height across the transport */
+  --track-cap:.16em;                /* tracked uppercase mono labels */
+  --ease-out:cubic-bezier(.2,.8,.2,1); --ease-in:cubic-bezier(.4,0,1,1);
+  --t-in:220ms; --t-out:150ms;
+}
+body { -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; font-kerning:normal; }
+/* Numbers line up in columns: BPM, knob values, dB, tab numbers. */
+input.bpm, .kval, .tabs button, .num, .meta, #strips, .gstat { font-variant-numeric:tabular-nums; }
+
+/* Type: Latin caps stay tracked; Chinese gets near-zero tracking so it reads as words, not letters. */
+.edition, .eyebrow, .art-label, .session-status, .xlab, .panel h2::before { letter-spacing:var(--track-cap); }
+.edition { font-size:10px; }
+.eyebrow { font-size:10px; }
+.art-copy p { letter-spacing:.06em; font-size:13px; color:#9ea5a2; margin-top:var(--sp3); }
+.art-meta span:last-child { letter-spacing:.04em; }
+.panel h2 { letter-spacing:.12em; line-height:1; margin-bottom:var(--sp2); }
+.panel h2 span { letter-spacing:.02em; margin-left:var(--sp2); }
+.session-label { letter-spacing:.14em; }
+.session-label small { letter-spacing:.02em; margin-top:var(--sp1); }
+.session-status .hint { letter-spacing:.01em; }
+.library .drop, .library .hint, .library .summary, .slot-name, .gridbar .gstat, .hint { letter-spacing:.01em; }
+.title { letter-spacing:-.005em; }
+.meta { letter-spacing:.04em; }
+
+/* Transport: every control is the same height, so labels sit on one line. */
+.transport { padding:var(--sp5) 0; gap:var(--sp3) var(--sp5); align-items:flex-end; }
+.tgroup { gap:var(--sp2); font-size:11px; letter-spacing:.06em; line-height:1; }
+.transport select, .transport input[type=number]:not(.bpm) { height:var(--ctl); padding:0 var(--sp3); font-size:12px; border-radius:5px; }
+.transport input[type=number]:not(.bpm) { width:72px; }
+input.bpm { height:var(--ctl); padding:0 2px; font-size:24px; line-height:var(--ctl); text-align:left; }
+.transport .seg { height:var(--ctl); display:flex; align-items:stretch; gap:var(--sp1); }
+.transport .seg button { padding:0 var(--sp3); font-size:12px; }
+.transport .sep { height:var(--ctl); align-self:flex-end; }
+.session-label { align-self:center; }
+button.big { height:var(--ctl); padding:0 var(--sp5); font-size:18px; }
+button.play { height:var(--ctl); width:var(--ctl); }
+.session-status { padding:var(--sp3) 0 var(--sp4); }
+
+/* Panels share one inner rhythm. Library stays in view while the long workspace scrolls. */
+.grid { gap:var(--sp5); align-items:start; }
+.panel { padding:var(--sp5); }
+.library { padding:var(--sp5) var(--sp4); position:sticky; top:var(--sp4); max-height:calc(100vh - var(--sp6)); display:flex; flex-direction:column; }
+.library .packs { max-height:none; flex:1; min-height:0; overflow-y:auto; }
+.library .row { gap:var(--sp2); }
+.library .row .small { padding:5px 10px; }
+
+#work { padding:var(--sp5); gap:var(--sp4); }
+.ws-top { padding-bottom:var(--sp4); }
+.card-head { margin-bottom:var(--sp5); gap:var(--sp3); }
+.knobs { gap:var(--sp5); padding-bottom:var(--sp4); }
+.gridbar { gap:var(--sp2); margin-bottom:var(--sp3); }
+.gridbar button { padding:5px 10px; font-size:12px; }
+.steps-wrap { padding:var(--sp3) 0 var(--sp5); }
+
+/* Slot list: wider label column so "Instrument" fits; buttons a touch larger to read and hit. */
+.slots { grid-template-columns:88px minmax(120px,1fr) auto; gap:0 var(--sp4); }
+.slots > * { padding:var(--sp2) 0; min-height:44px; display:flex; align-items:center; }
+.slot-lab { font-size:11px; letter-spacing:.04em; }
+.slot-name { font-size:12px; display:block; line-height:28px; }
+.slot-btns { gap:var(--sp1); justify-content:flex-end; }
+.slot-btns button { padding:5px 9px; font-size:11px; letter-spacing:.02em; }
+.exportbar { margin-top:var(--sp2); padding-top:var(--sp5); gap:var(--sp4); }
+.exportbar .check { letter-spacing:.04em; }
+.mixer-heading { margin-bottom:var(--sp5); }
+#strips { gap:var(--sp2) var(--sp6); }
+
+/* Picker / settings dialogs: calmer focus ring inside, consistent spacing. */
+.pick-ov { background:rgba(6,8,8,.62); }
+.picker { padding:var(--sp5); gap:var(--sp3); border-radius:10px; border-color:#2f3534; }
+.pick-head { font-size:14px; letter-spacing:.02em; }
+.picker input:focus-visible, .picker select:focus-visible { outline-width:1px; outline-offset:2px; }
+.pick-row { padding:10px var(--sp3); }
+
+/* ── Motion. Open = ease-out and a little longer; close = ease-in and quicker. ── */
+@keyframes gbFadeIn { from { opacity:0; } }
+@keyframes gbFadeOut { to { opacity:0; } }
+@keyframes gbDialogIn { from { opacity:0; transform:translateY(10px) scale(.975); } }
+@keyframes gbDialogOut { to { opacity:0; transform:translateY(6px) scale(.985); } }
+@keyframes gbRiseIn { from { opacity:0; transform:translateY(14px); } }
+@keyframes gbSinkOut { to { opacity:0; transform:translateY(10px); } }
+@keyframes gbSlideIn { from { opacity:0; transform:translateX(-14px); } }
+@keyframes gbSlideOut { to { opacity:0; transform:translateX(-14px); } }
+@keyframes gbToastIn { from { opacity:0; transform:translate(-50%,10px); } }
+@keyframes gbToastOut { to { opacity:0; transform:translate(-50%,6px); } }
+@keyframes gbSwap { from { opacity:.25; transform:translateY(4px); } }
+
+.pick-ov { animation:gbFadeIn var(--t-in) var(--ease-out); }
+.pick-ov > .picker { animation:gbDialogIn var(--t-in) var(--ease-out); }
+.pick-ov.is-closing { animation:gbFadeOut var(--t-out) var(--ease-in) forwards; pointer-events:none; }
+.pick-ov.is-closing > .picker { animation:gbDialogOut var(--t-out) var(--ease-in) forwards; }
+
+.mixer.is-opening { animation:gbRiseIn 260ms var(--ease-out); }
+.mixer.is-closing { animation:gbSinkOut var(--t-out) var(--ease-in) forwards; }
+.library.is-opening { animation:gbSlideIn var(--t-in) var(--ease-out); }
+.library.is-closing { animation:gbSlideOut var(--t-out) var(--ease-in) forwards; }
+.grid { transition:grid-template-columns 240ms var(--ease-out); }
+
+.art-stage { transition:height 300ms var(--ease-out), opacity 240ms var(--ease-out), border-color 300ms; }
+.art-stage.is-collapsed { height:0 !important; opacity:0; border-bottom-color:transparent; transition-timing-function:var(--ease-in); transition-duration:220ms, 160ms, 220ms; }
+
+.toast { animation:gbToastIn 200ms var(--ease-out); }
+.toast.is-closing { animation:gbToastOut var(--t-out) var(--ease-in) forwards; }
+
+/* Switching demo or Pattern/Arrange: a short settle, not a slide show. */
+#ws.is-swapping > * { animation:gbSwap 180ms var(--ease-out); }
+
+@media (max-width:1100px) { .slots { grid-template-columns:80px minmax(0,1fr); } .slot-btns { justify-content:flex-start; } }
+@media (max-width:760px) {
+  .library { position:static; max-height:none; }
+  .library .packs { max-height:190px; }
+  .panel, #work { padding:var(--sp4); }
+  .transport { gap:var(--sp3) var(--sp4); padding:var(--sp4) 0; }
+  .slots { grid-template-columns:64px minmax(0,1fr); gap:0 var(--sp3); }
+  .art-copy p { font-size:11px; }
+}
