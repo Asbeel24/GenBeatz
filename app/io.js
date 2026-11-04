@@ -49,10 +49,10 @@ async function openSink(sub) {
 function renderExportDir() {
   const box = $('#exportDir'); if (!box) return;
   const dir = store.get('gb.exportDir', null);
-  box.replaceChildren(
+  box.replaceChildren(...[
     el('span', { class: 'hint', title: dir || '' }, dir ? '导出到 ' + shortPath(dir) : '第一次导出时选择文件夹'),
     el('button', { class: 'small', onclick: async () => { const d = await pickFolder('选择导出文件夹'); if (d) { store.set('gb.exportDir', d); renderExportDir(); } } }, dir ? '更改' : '选择'),
-    dir ? el('button', { class: 'small', onclick: () => TAURI.opener.openPath(dir).catch(e => toast('打不开：' + e)) }, '打开') : null);
+    dir ? el('button', { class: 'small', onclick: () => tInvoke('open_folder', { path: dir }).catch(e => toast('打不开：' + e)) }, '打开') : null].filter(Boolean));
 }
 const shortPath = p => p.length > 42 ? '…' + p.slice(-40) : p;
 
@@ -73,8 +73,8 @@ async function loadLibraryDir(dir, quiet) {
 function renderLibDir() {
   const box = $('#libDir'); if (!box) return;
   const dir = store.get('gb.libDir', null);
-  box.replaceChildren(dir ? el('span', { class: 'hint', title: dir }, shortPath(dir)) : el('span', { class: 'hint' }, '还没选采样库，打开软件时会自动重新扫描选过的文件夹'),
-    dir ? el('button', { class: 'small', onclick: () => loadLibraryDir(dir) }, '重新扫描') : null);
+  box.hidden = !dir;
+  if (dir) box.replaceChildren(el('span', { class: 'hint', title: dir }, shortPath(dir)), el('button', { class: 'small', onclick: () => loadLibraryDir(dir) }, '重新扫描'));
 }
 if (DESKTOP) {
   const label = $('label[for=dirInput]');

@@ -5,6 +5,7 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
     "esbuild": "^0.28.2",
     "playwright": "^1.64.1"
   },
@@ -12,6 +13,12 @@
     "test:studio": "node tests/studio.js",
     "start": "python3 -m http.server 4173 --bind 127.0.0.1",
     "build:art": "esbuild app/src/art-pbr.js --bundle --minify --format=iife --outfile=app/art-pbr.bundle.js",
-    "test:art": "node tests/art.js"
-  }
+    "test:art": "node tests/art.js",
+    "test:desktop": "node tests/desktop.js",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build"
+  },
+  "name": "genbeatz",
+  "private": true,
+  "version": "0.2.0"
 }

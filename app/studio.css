@@ -273,3 +273,5 @@ kbd { display:inline-block; min-width:24px; padding:2px 8px; font:12px var(--mon
 .libdir, .exportdir { display:flex; align-items:center; gap:var(--sp2); min-width:0; }
 .libdir .hint, .exportdir .hint { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; }
 .exportdir { flex:1; max-width:420px; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+input[type=number] { -moz-appearance:textfield; appearance:textfield; }
